@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProcureFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #eef4ff;
+      --panel: rgba(255,255,255,0.92);
+      --panel-2: linear-gradient(135deg, #ffffff 0%, #edf4ff 100%);
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #d7e3f4;
+      --primary: #2563eb;
+      --primary-2: #7c3aed;
+      --accent: #06b6d4;
+      --success: #16a34a;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --shadow: 0 22px 60px rgba(37, 99, 235, 0.10);
+      --shadow-soft: 0 14px 30px rgba(15, 23, 42, 0.06);
+      --soft-block: #f8fafc;
+      --soft-border: #e2e8f0;
+      --soft-text: #334155;
+    }
+
+    body.dark-mode {
+      --bg: #0b1120;
+      --panel: rgba(15,23,42,0.88);
+      --panel-2: linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%);
+      --text: #e5eefc;
+      --muted: #94a3b8;
+      --line: rgba(148,163,184,0.18);
+      --shadow: 0 26px 70px rgba(2, 6, 23, 0.45);
+      --shadow-soft: 0 18px 40px rgba(2, 6, 23, 0.35);
+      --soft-block: rgba(255,255,255,0.04);
+      --soft-border: rgba(148,163,184,0.12);
+      --soft-text: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.16), transparent 24%),
+        radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.12), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(6, 182, 212, 0.10), transparent 24%),
+        linear-gradient(180deg, #f7faff 0%, #eef4ff 100%);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    body.dark-mode {
+      background:
+        radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.20), transparent 24%),
+        radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.18), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(6, 182, 212, 0.12), transparent 24%),
+        linear-gradient(180deg, #020617 0%, #0b1120 100%);
+    }
+
+    .display-font { font-family: 'Space Grotesk', sans-serif; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .panel-soft {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel-soft::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(37,99,235,0.05), rgba(124,58,237,0.04) 45%, rgba(6,182,212,0.04));
+      pointer-events: none;
+    }
+    .input-ui {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px 16px;
+      font: inherit;
+      outline: none;
+      transition: .2s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+    }
+    body.dark-mode .input-ui {
+      background: rgba(15,23,42,0.78);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .input-ui::placeholder { color: var(--muted); }
+    .input-ui:focus {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .muted { color: var(--muted); }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .soft-block { background: var(--soft-block); border-color: var(--soft-border) !important; color: var(--soft-text); }
+    .fade-up { animation: fadeUp .25s ease-out; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .grid-auto {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    }
+    .nav-btn.active {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.22);
+    }
+    .mobile-safe-bottom { padding-bottom: 110px; }
+    @media (max-width: 768px) {
+      .mobile-safe-bottom { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+      .mobile-nav { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(96, 165, 250, 0.35); border-radius: 999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="mobile-safe-bottom">
+    <main class="mx-auto max-w-7xl px-3 pb-24 pt-4 sm:px-4 md:px-6 md:pb-28 md:pt-6 lg:px-8">
+      <section class="mb-6 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
+        <div class="panel-soft rounded-[28px] p-5 md:p-8">
+          <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
+                <span>●</span> Local JSON Workspace
+              </div>
+              <h1 class="display-font text-3xl font-bold tracking-tight md:text-5xl">ProcureFlow</h1>
+              <p class="muted mt-3 max-w-2xl text-sm md:text-base">
+                A cleaner tracking workspace for procurement follow-up, approvals, vendor details, LPO cost, and delivery monitoring.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="themeToggle" onclick="toggleTheme()" class="rounded-2xl border border-[var(--line)] bg-white/70 px-4 py-3 text-sm font-bold text-[var(--text)] shadow-sm">Dark</button>
+              <button onclick="openModal()" class="rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(59,130,246,0.28)]">Add Record</button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button id="tabDashboard" onclick="switchPage('dashboard')" class="nav-btn active rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold">Dashboard</button>
+            <button id="tabList" onclick="switchPage('list')" class="nav-btn rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold">MR / PO List</button>
+          </div>
+        </div>
+
+        <div class="panel rounded-[28px] p-5 md:p-8">
+          <div class="mb-4 flex items-center justify-between">
+            <div>
+              <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Actions</div>
+              <h2 class="display-font mt-1 text-2xl font-bold">Control Center</h2>
+            </div>
+            <div class="rounded-2xl bg-gradient-to-r from-cyan-500/10 to-violet-500/10 px-3 py-2 text-sm font-semibold text-violet-700 ring-1 ring-violet-100">Local</div>
+          </div>
+
+          <div class="space-y-3">
+            <button onclick="document.getElementById('importFile').click()" class="input-ui text-left">
+              <div class="font-semibold">Import JSON</div>
+              <div class="muted mt-1 text-sm">Load saved MR / PO records</div>
+            </button>
+            <button onclick="exportData()" class="input-ui text-left">
+              <div class="font-semibold">Export JSON</div>
+              <div class="muted mt-1 text-sm">Backup current tracker data</div>
+            </button>
+            <div class="input-ui">
+              <div class="font-semibold">Today</div>
+              <div id="currentDate" class="muted mt-1 text-sm"></div>
+            </div>
+          </div>
+          <input type="file" id="importFile" class="hidden" accept=".json" onchange="handleImport(event)">
+        </div>
+      </section>
+
+      <section id="dashboardPage">
+        <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" id="statsGrid"></div>
+
+        <section class="mb-6 grid gap-4 lg:grid-cols-[0.95fr,1.05fr]">
+          <div class="panel rounded-[28px] p-4 md:p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Overview</div>
+                <h3 class="display-font mt-1 text-xl font-bold">Tracker Health</h3>
+              </div>
+            </div>
+            <div id="overviewCards" class="grid gap-3 sm:grid-cols-2"></div>
+          </div>
+
+          <div class="panel rounded-[28px] p-4 md:p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Recent Activity</div>
+                <h3 class="display-font mt-1 text-xl font-bold">Latest Entries</h3>
+              </div>
+            </div>
+            <div id="recentList" class="space-y-3"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="listPage" class="hidden">
+        <section class="mb-6 grid gap-4 lg:grid-cols-[0.9fr,1.1fr]">
+          <div class="panel rounded-[28px] p-4 md:p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Filters</div>
+                <h3 class="display-font mt-1 text-xl font-bold">Refine View</h3>
+              </div>
+              <button onclick="resetFilters()" class="rounded-xl bg-gradient-to-r from-slate-100 to-blue-50 px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">Reset</button>
+            </div>
+
+            <div class="space-y-3">
+              <input id="searchInput" type="text" placeholder="Search MR, material, vendor, LPO, SO..." oninput="renderApp()" class="input-ui">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <select id="typeFilter" onchange="renderApp()" class="input-ui">
+                  <option value="All">All Types</option>
+                  <option value="AMC">AMC</option>
+                  <option value="Sales Order">Sales Order</option>
+                </select>
+                <select id="statusFilter" onchange="renderApp()" class="input-ui">
+                  <option value="All">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Partially Delivered">Partially Delivered</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <select id="sortSelect" onchange="renderApp()" class="input-ui">
+                <option value="recent">Sort: Recent</option>
+                <option value="elapsed">Sort: Days Elapsed</option>
+                <option value="costHigh">Sort: Cost High-Low</option>
+                <option value="costLow">Sort: Cost Low-High</option>
+                <option value="mr">Sort: MR Number</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="panel rounded-[28px] p-4 md:p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Quick Type Filter</div>
+                <h3 class="display-font mt-1 text-xl font-bold">Browse by MR Type</h3>
+              </div>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <button id="quickAll" onclick="quickType('All')" class="soft-block rounded-2xl border px-4 py-4 text-left">
+                <div class="text-sm font-bold">All Records</div>
+                <div class="muted mt-1 text-xs">See everything</div>
+              </button>
+              <button id="quickAMC" onclick="quickType('AMC')" class="soft-block rounded-2xl border px-4 py-4 text-left">
+                <div class="text-sm font-bold">AMC</div>
+                <div class="muted mt-1 text-xs">Annual / contract related</div>
+              </button>
+              <button id="quickSO" onclick="quickType('Sales Order')" class="soft-block rounded-2xl border px-4 py-4 text-left">
+                <div class="text-sm font-bold">Sales Order</div>
+                <div class="muted mt-1 text-xs">SO-linked materials</div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section id="itemsGrid" class="grid-auto"></section>
+      </section>
+    </main>
+
+    <button onclick="openModal()" class="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-violet-600 to-cyan-500 text-white shadow-[0_18px_34px_rgba(59,130,246,0.30)] md:bottom-8 md:right-8">+</button>
+
+    <nav class="mobile-nav panel fixed bottom-0 left-0 right-0 z-50 border-t px-2 py-2 sm:px-4 sm:py-3">
+      <div class="mx-auto grid max-w-7xl grid-cols-4 gap-2 sm:flex sm:items-center sm:justify-between sm:gap-3">
+        <button onclick="switchPage('dashboard')" class="rounded-2xl px-2 py-3 text-[11px] font-semibold sm:px-4 sm:text-sm">Dashboard</button>
+        <button onclick="switchPage('list')" class="rounded-2xl px-2 py-3 text-[11px] font-semibold sm:px-4 sm:text-sm">List</button>
+        <button onclick="toggleTheme()" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-slate-700 sm:px-4 sm:text-sm">Theme</button>
+        <button onclick="openModal()" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-violet-700 sm:px-4 sm:text-sm">Add</button>
+      </div>
+    </nav>
+  </div>
+
+  <div id="modal" class="fixed inset-0 z-[70] hidden items-end justify-center bg-slate-950/45 p-0 md:items-center md:p-6">
+    <div class="panel w-full max-w-5xl rounded-t-[28px] p-4 md:rounded-[32px] md:p-8">
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <div id="modalLabel" class="muted text-xs font-semibold uppercase tracking-[0.2em]">New entry</div>
+          <h2 id="modalTitle" class="display-font mt-1 text-2xl font-bold">Create MR / PO record</h2>
+        </div>
+        <button onclick="closeModal()" class="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">Close</button>
+      </div>
+
+      <form id="trackerForm" class="space-y-5">
+        <input type="hidden" id="editId">
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div><label class="muted mb-2 block text-sm font-semibold">MR Created Date</label><input type="date" id="mrCreatedDate" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Project Line Manager Approved Date</label><input type="date" id="plmApprovedDate" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Senior Manager Approved Date</label><input type="date" id="smApprovedDate" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Date of MR Shared to Procurement</label><input type="date" id="sharedToProcurementDate" onchange="updateElapsedInForm()" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Days Elapsed After Submitting to Procurement</label><input type="number" id="daysElapsed" class="input-ui" readonly></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">MR Number</label><input required id="mrNumber" class="input-ui" placeholder="Enter MR number"></div>
+        </div>
+
+        <div><label class="muted mb-2 block text-sm font-semibold">Material Details</label><textarea id="materialDetails" rows="3" class="input-ui" placeholder="Enter material details"></textarea></div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div><label class="muted mb-2 block text-sm font-semibold">MR Type</label><select id="mrType" onchange="toggleSONumberField()" class="input-ui"><option value="AMC">AMC</option><option value="Sales Order">Sales Order</option></select></div>
+          <div id="soFieldWrap"><label class="muted mb-2 block text-sm font-semibold">SO Number</label><input id="soNumber" class="input-ui" placeholder="Mandatory for Sales Order"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">LPO Issued Date</label><input type="date" id="lpoIssuedDate" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">LPO Number</label><input id="lpoNumber" class="input-ui" placeholder="Enter LPO number"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Supplier / Vendor Details</label><input id="vendorDetails" class="input-ui" placeholder="Enter supplier or vendor"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">LPO Cost</label><input type="number" step="0.01" id="lpoCost" class="input-ui" placeholder="0.00"></div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div><label class="muted mb-2 block text-sm font-semibold">Material Delivery Status</label><select id="deliveryStatus" onchange="updateElapsedInForm()" class="input-ui"><option value="Pending">Pending</option><option value="Partially Delivered">Partially Delivered</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option></select></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Delivery Date</label><input type="date" id="deliveryDate" onchange="updateElapsedInForm()" class="input-ui"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">Additional Remarks</label><input id="remarks" class="input-ui" placeholder="Optional notes"></div>
+        </div>
+
+        <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onclick="closeModal()" class="rounded-2xl bg-slate-100 px-5 py-3 font-semibold text-slate-700">Cancel</button>
+          <button type="submit" class="rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-3 font-bold text-white shadow-[0_12px_28px_rgba(59,130,246,0.24)]">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed left-1/2 top-5 z-[90] hidden -translate-x-1/2">
+    <div class="panel rounded-2xl px-4 py-3 text-sm font-semibold" id="toastText"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'mr_po_tracker_local_v1';
+    let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let currentPage = 'dashboard';
+    let darkMode = JSON.parse(localStorage.getItem('mr_po_tracker_dark_mode') || 'false');
+
+    function applyTheme() {
+      document.body.classList.toggle('dark-mode', darkMode);
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = darkMode ? 'Light' : 'Dark';
+      localStorage.setItem('mr_po_tracker_dark_mode', JSON.stringify(darkMode));
+    }
+
+    function toggleTheme() {
+      darkMode = !darkMode;
+      applyTheme();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastText').textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.add('hidden'), 2200);
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderApp();
+    }
+
+    function uid() { return Date.now().toString() + Math.random().toString(36).slice(2, 7); }
+
+    function switchPage(page) {
+      currentPage = page;
+      document.getElementById('dashboardPage').classList.toggle('hidden', page !== 'dashboard');
+      document.getElementById('listPage').classList.toggle('hidden', page !== 'list');
+      document.getElementById('tabDashboard').classList.toggle('active', page === 'dashboard');
+      document.getElementById('tabList').classList.toggle('active', page === 'list');
+    }
+
+    function formatDate(value) {
+      if (!value) return 'NA';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'NA';
+      return d.toLocaleDateString('en-GB');
+    }
+
+    function calculateDaysElapsed(sharedDate, deliveryDate, deliveryStatus) {
+      if (!sharedDate) return '';
+      const start = new Date(sharedDate);
+      if (isNaN(start.getTime())) return '';
+      let endDate = new Date();
+      const shouldUseDeliveryDate = deliveryDate && (deliveryStatus === 'Delivered' || deliveryStatus === 'Partially Delivered');
+      if (shouldUseDeliveryDate) {
+        const delivered = new Date(deliveryDate);
+        if (!isNaN(delivered.getTime())) endDate = delivered;
+      }
+      start.setHours(0,0,0,0);
+      endDate.setHours(0,0,0,0);
+      return Math.max(0, Math.floor((endDate - start) / (1000 * 60 * 60 * 24)));
+    }
+
+    function updateElapsedInForm() {
+      const sharedDate = document.getElementById('sharedToProcurementDate').value;
+      const deliveryDate = document.getElementById('deliveryDate').value;
+      const deliveryStatus = document.getElementById('deliveryStatus').value;
+      document.getElementById('daysElapsed').value = calculateDaysElapsed(sharedDate, deliveryDate, deliveryStatus);
+    }
+
+    function toggleSONumberField() {
+      const type = document.getElementById('mrType').value;
+      const so = document.getElementById('soNumber');
+      if (type === 'Sales Order') {
+        so.required = true;
+      } else {
+        so.required = false;
+        so.value = '';
+      }
+    }
+
+    function getStatusTone(status) {
+      if (status === 'Delivered') return 'background:#dcfce7;color:#166534;border-color:#bbf7d0';
+      if (status === 'Partially Delivered') return 'background:#fff7ed;color:#c2410c;border-color:#fed7aa';
+      if (status === 'Cancelled') return 'background:#fee2e2;color:#b91c1c;border-color:#fecaca';
+      return 'background:#e0f2fe;color:#0369a1;border-color:#bae6fd';
+    }
+
+    function getTypeTone(type) {
+      return type === 'Sales Order'
+        ? 'background:#ede9fe;color:#6d28d9;border-color:#ddd6fe'
+        : 'background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe';
+    }
+
+    function currencyFormat(value) {
+      const num = Number(value || 0);
+      return num ? num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+    }
+
+    function renderStat(title, value, accentBg, accentText) {
+      return `
+        <div class="panel rounded-[24px] p-5">
+          <div class="mb-4 flex items-center justify-between">
+            <div class="rounded-2xl px-3 py-2 text-sm font-bold" style="background:${accentBg};color:${accentText}">●</div>
+            <span class="muted text-[11px] font-semibold uppercase tracking-[0.18em]">Live</span>
+          </div>
+          <div class="display-font text-3xl font-bold" style="color:${accentText}">${value}</div>
+          <div class="muted mt-1 text-sm">${title}</div>
+        </div>
+      `;
+    }
+
+    function renderDashboard(stats) {
+      document.getElementById('statsGrid').innerHTML = `
+        ${renderStat('Total Records', stats.total, '#eff6ff', '#1d4ed8')}
+        ${renderStat('Pending Delivery', stats.pending, '#fef3c7', '#b45309')}
+        ${renderStat('Partially Delivered', stats.partial, '#fff7ed', '#c2410c')}
+        ${renderStat('Delivered', stats.delivered, '#dcfce7', '#166534')}
+        ${renderStat('Total LPO Cost', currencyFormat(stats.value), '#e0f2fe', '#0369a1')}
+      `;
+
+      document.getElementById('overviewCards').innerHTML = `
+        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">AMC Records</div><div class="display-font mt-2 text-2xl font-bold">${stats.amc}</div></div>
+        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Sales Order Records</div><div class="display-font mt-2 text-2xl font-bold">${stats.salesOrder}</div></div>
+        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Average Days Elapsed</div><div class="display-font mt-2 text-2xl font-bold">${stats.avgElapsed}</div></div>
+        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Highest LPO Cost</div><div class="display-font mt-2 text-2xl font-bold">AED ${currencyFormat(stats.maxCost)}</div></div>
+      `;
+
+      const latest = [...records]
+        .sort((a, b) => new Date(b.mrCreatedDate || 0) - new Date(a.mrCreatedDate || 0))
+        .slice(0, 5);
+
+      document.getElementById('recentList').innerHTML = latest.length ? latest.map(r => `
+        <div class="soft-block rounded-[20px] border p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="display-font text-lg font-bold">${r.mrNumber || 'NA'}</div>
+              <div class="muted mt-1 text-sm">${r.materialDetails || 'No material details'}</div>
+            </div>
+            <span class="chip" style="${getStatusTone(r.deliveryStatus)}">${r.deliveryStatus}</span>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="chip" style="${getTypeTone(r.mrType)}">${r.mrType}</span>
+            <span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">AED ${currencyFormat(r.lpoCost)}</span>
+          </div>
+        </div>
+      `).join('') : `<div class="rounded-[20px] bg-slate-50 p-5 text-sm muted">No recent records available.</div>`;
+    }
+
+    function renderList(filtered, typeFilter) {
+      const grid = document.getElementById('itemsGrid');
+      if (!filtered.length) {
+        grid.innerHTML = `
+          <div class="panel col-span-full rounded-[28px] p-12 text-center">
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-2xl">🔎</div>
+            <div class="display-font text-2xl font-bold">No records found</div>
+            <p class="muted mt-2 text-sm">Try a different search or add a new MR / PO entry.</p>
+          </div>
+        `;
+        updateQuickButtons(typeFilter);
+        return;
+      }
+
+      grid.innerHTML = filtered.map(r => `
+        <article class="panel fade-up rounded-[28px] overflow-hidden">
+          <div class="soft-block border-b px-5 py-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="muted mb-1 text-[11px] font-bold uppercase tracking-[0.18em]">MR Number</div>
+                <div class="display-font text-xl font-bold">${r.mrNumber || 'NA'}</div>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="editRecord('${r.id}')" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200">Edit</button>
+                <button onclick="deleteRecord('${r.id}')" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700 ring-1 ring-slate-200">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <div class="mb-4 flex flex-wrap gap-2">
+              <span class="chip" style="${getTypeTone(r.mrType)}">${r.mrType}</span>
+              <span class="chip" style="${getStatusTone(r.deliveryStatus)}">${r.deliveryStatus}</span>
+              ${r.soNumber ? `<span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">SO ${r.soNumber}</span>` : ''}
+            </div>
+
+            <div class="soft-block mb-4 rounded-[22px] border p-4">
+              <div class="muted mb-2 text-[11px] font-bold uppercase tracking-[0.18em]">Material Details</div>
+              <div class="text-sm leading-6">${r.materialDetails || 'No material details'}</div>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="soft-block rounded-[20px] border p-4">
+                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Timeline</div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between gap-3"><span class="muted">MR Created</span><span>${formatDate(r.mrCreatedDate)}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">Shared to Procurement</span><span>${formatDate(r.sharedToProcurementDate)}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">Delivery Date</span><span>${formatDate(r.deliveryDate)}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">Days Elapsed</span><span class="font-semibold">${r.daysElapsed || 0}</span></div>
+                </div>
+              </div>
+              <div class="soft-block rounded-[20px] border p-4">
+                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Approvals</div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between gap-3"><span class="muted">PLM</span><span>${formatDate(r.plmApprovedDate)}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">Senior Manager</span><span>${formatDate(r.smApprovedDate)}</span></div>
+                </div>
+              </div>
+              <div class="soft-block rounded-[20px] border p-4">
+                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">LPO</div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between gap-3"><span class="muted">Issued Date</span><span>${formatDate(r.lpoIssuedDate)}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">LPO Number</span><span>${r.lpoNumber || 'NA'}</span></div>
+                  <div class="flex justify-between gap-3"><span class="muted">LPO Cost</span><span>AED ${currencyFormat(r.lpoCost)}</span></div>
+                </div>
+              </div>
+              <div class="soft-block rounded-[20px] border p-4">
+                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Supplier</div>
+                <div class="text-sm">${r.vendorDetails || 'NA'}</div>
+              </div>
+            </div>
+
+            ${r.remarks ? `<div class="soft-block mt-4 rounded-[20px] border p-4"><div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">Remarks</div><p class="text-sm">${r.remarks}</p></div>` : ''}
+          </div>
+        </article>
+      `).join('');
+
+      updateQuickButtons(typeFilter);
+    }
+
+    function renderApp() {
+      const searchEl = document.getElementById('searchInput');
+      const typeEl = document.getElementById('typeFilter');
+      const statusEl = document.getElementById('statusFilter');
+      const sortEl = document.getElementById('sortSelect');
+
+      const search = searchEl ? searchEl.value.toLowerCase() : '';
+      const typeFilter = typeEl ? typeEl.value : 'All';
+      const statusFilter = statusEl ? statusEl.value : 'All';
+      const sortBy = sortEl ? sortEl.value : 'recent';
+
+      let filtered = [...records].filter(r => {
+        const text = [r.mrNumber, r.materialDetails, r.vendorDetails, r.lpoNumber, r.soNumber].join(' ').toLowerCase();
+        const matchesSearch = !search || text.includes(search);
+        const matchesType = typeFilter === 'All' || r.mrType === typeFilter;
+        const matchesStatus = statusFilter === 'All' || r.deliveryStatus === statusFilter;
+        return matchesSearch && matchesType && matchesStatus;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortBy === 'elapsed') return Number(b.daysElapsed || 0) - Number(a.daysElapsed || 0);
+        if (sortBy === 'costHigh') return Number(b.lpoCost || 0) - Number(a.lpoCost || 0);
+        if (sortBy === 'costLow') return Number(a.lpoCost || 0) - Number(b.lpoCost || 0);
+        if (sortBy === 'mr') return (a.mrNumber || '').localeCompare(b.mrNumber || '');
+        return new Date(b.mrCreatedDate || 0) - new Date(a.mrCreatedDate || 0);
+      });
+
+      const elapsedVals = records.map(r => Number(r.daysElapsed || 0)).filter(v => !isNaN(v));
+      const stats = {
+        total: records.length,
+        pending: records.filter(r => r.deliveryStatus === 'Pending').length,
+        partial: records.filter(r => r.deliveryStatus === 'Partially Delivered').length,
+        delivered: records.filter(r => r.deliveryStatus === 'Delivered').length,
+        value: records.reduce((sum, r) => sum + Number(r.lpoCost || 0), 0),
+        amc: records.filter(r => r.mrType === 'AMC').length,
+        salesOrder: records.filter(r => r.mrType === 'Sales Order').length,
+        avgElapsed: elapsedVals.length ? Math.round(elapsedVals.reduce((a,b) => a+b, 0) / elapsedVals.length) : 0,
+        maxCost: records.reduce((max, r) => Math.max(max, Number(r.lpoCost || 0)), 0)
+      };
+
+      renderDashboard(stats);
+      renderList(filtered, typeFilter);
+      applyTheme();
+      switchPage(currentPage);
+    }
+
+    function updateQuickButtons(typeFilter) {
+      const base = 'soft-block rounded-2xl border px-4 py-4 text-left';
+      const ids = ['quickAll','quickAMC','quickSO'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = base;
+      });
+      if (typeFilter === 'All') document.getElementById('quickAll').className = base + ' ring-2 ring-blue-200 bg-blue-50';
+      if (typeFilter === 'AMC') document.getElementById('quickAMC').className = base + ' ring-2 ring-blue-200 bg-blue-50';
+      if (typeFilter === 'Sales Order') document.getElementById('quickSO').className = base + ' ring-2 ring-violet-200 bg-violet-50';
+    }
+
+    function quickType(type) {
+      const typeEl = document.getElementById('typeFilter');
+      if (typeEl) typeEl.value = type;
+      currentPage = 'list';
+      renderApp();
+    }
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('typeFilter').value = 'All';
+      document.getElementById('statusFilter').value = 'All';
+      document.getElementById('sortSelect').value = 'recent';
+      renderApp();
+    }
+
+    function openModal() {
+      document.getElementById('trackerForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('modalLabel').textContent = 'New entry';
+      document.getElementById('modalTitle').textContent = 'Create MR / PO record';
+      document.getElementById('daysElapsed').value = '';
+      document.getElementById('deliveryDate').value = '';
+      document.getElementById('mrType').value = 'AMC';
+      toggleSONumberField();
+      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('flex');
+    }
+
+    function editRecord(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
+      document.getElementById('editId').value = r.id;
+      document.getElementById('mrCreatedDate').value = r.mrCreatedDate || '';
+      document.getElementById('plmApprovedDate').value = r.plmApprovedDate || '';
+      document.getElementById('smApprovedDate').value = r.smApprovedDate || '';
+      document.getElementById('sharedToProcurementDate').value = r.sharedToProcurementDate || '';
+      document.getElementById('daysElapsed').value = r.daysElapsed || '';
+      document.getElementById('mrNumber').value = r.mrNumber || '';
+      document.getElementById('materialDetails').value = r.materialDetails || '';
+      document.getElementById('mrType').value = r.mrType || 'AMC';
+      document.getElementById('soNumber').value = r.soNumber || '';
+      document.getElementById('lpoIssuedDate').value = r.lpoIssuedDate || '';
+      document.getElementById('lpoNumber').value = r.lpoNumber || '';
+      document.getElementById('vendorDetails').value = r.vendorDetails || '';
+      document.getElementById('lpoCost').value = r.lpoCost || '';
+      document.getElementById('deliveryStatus').value = r.deliveryStatus || 'Pending';
+      document.getElementById('deliveryDate').value = r.deliveryDate || '';
+      document.getElementById('remarks').value = r.remarks || '';
+      document.getElementById('modalLabel').textContent = 'Edit entry';
+      document.getElementById('modalTitle').textContent = 'Update MR / PO record';
+      toggleSONumberField();
+      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
+    }
+
+    function deleteRecord(id) {
+      if (!confirm('Delete this record?')) return;
+      records = records.filter(r => r.id !== id);
+      saveLocal();
+      showToast('Record deleted');
+    }
+
+    document.getElementById('trackerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const mrType = document.getElementById('mrType').value;
+      const soNumber = document.getElementById('soNumber').value.trim();
+      if (mrType === 'Sales Order' && !soNumber) {
+        showToast('SO Number is mandatory for Sales Order');
+        return;
+      }
+
+      const payload = {
+        mrCreatedDate: document.getElementById('mrCreatedDate').value,
+        plmApprovedDate: document.getElementById('plmApprovedDate').value,
+        smApprovedDate: document.getElementById('smApprovedDate').value,
+        sharedToProcurementDate: document.getElementById('sharedToProcurementDate').value,
+        daysElapsed: calculateDaysElapsed(
+          document.getElementById('sharedToProcurementDate').value,
+          document.getElementById('deliveryDate').value,
+          document.getElementById('deliveryStatus').value
+        ),
+        mrNumber: document.getElementById('mrNumber').value.trim(),
+        materialDetails: document.getElementById('materialDetails').value.trim(),
+        mrType,
+        soNumber: mrType === 'Sales Order' ? soNumber : '',
+        lpoIssuedDate: document.getElementById('lpoIssuedDate').value,
+        lpoNumber: document.getElementById('lpoNumber').value.trim(),
+        vendorDetails: document.getElementById('vendorDetails').value.trim(),
+        lpoCost: document.getElementById('lpoCost').value,
+        deliveryStatus: document.getElementById('deliveryStatus').value,
+        deliveryDate: document.getElementById('deliveryDate').value,
+        remarks: document.getElementById('remarks').value.trim()
+      };
+
+      const id = document.getElementById('editId').value;
+      if (id) {
+        const idx = records.findIndex(r => r.id === id);
+        if (idx !== -1) records[idx] = { ...records[idx], ...payload };
+        showToast('Record updated');
+      } else {
+        records.push({ id: uid(), ...payload });
+        showToast('Record added');
+      }
+
+      saveLocal();
+      closeModal();
+    });
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MR_PO_Tracker_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('JSON exported');
+    }
+
+    function handleImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid');
+          records = imported;
+          saveLocal();
+          showToast('JSON imported');
+        } catch (err) {
+          showToast('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', { dateStyle: 'medium' });
+    toggleSONumberField();
+    applyTheme();
+    renderApp();
+  </script>
+</body>
+</html>
