@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MR / PO Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -231,6 +232,10 @@
             <button onclick="exportData()" class="input-ui text-left">
               <div class="font-semibold">Export JSON</div>
               <div class="muted mt-1 text-sm">Backup current tracker data</div>
+            </button>
+            <button onclick="exportExcel()" class="input-ui text-left">
+              <div class="font-semibold">Download Excel</div>
+              <div class="muted mt-1 text-sm">Export tracker data in .xlsx format</div>
             </button>
             <div class="input-ui">
               <div class="font-semibold">Today</div>
@@ -805,6 +810,49 @@
       a.click();
       URL.revokeObjectURL(url);
       showToast('JSON exported');
+    }
+
+    function exportExcel() {
+      const rows = records.map(r => ({
+        'MR Created Date': formatDate(r.mrCreatedDate),
+        'Project Line Manager Approved Date': formatDate(r.plmApprovedDate),
+        'Senior Manager Approved Date': formatDate(r.smApprovedDate),
+        'Date of MR Shared to Procurement': formatDate(r.sharedToProcurementDate),
+        'Days Elapsed After Submitting to Procurement': r.daysElapsed || 0,
+        'MR Number': r.mrNumber || '',
+        'Material Details': r.materialDetails || '',
+        'MR Type': r.mrType || '',
+        'SO Number': r.soNumber || '',
+        'LPO Issued Date': formatDate(r.lpoIssuedDate),
+        'LPO Number': r.lpoNumber || '',
+        'Supplier / Vendor Details': r.vendorDetails || '',
+        'LPO Cost': Number(r.lpoCost || 0),
+        'Material Delivery Status': r.deliveryStatus || '',
+        'Delivery Date': formatDate(r.deliveryDate),
+        'Remarks': r.remarks || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'MR_PO_Tracker');
+
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      const colWidths = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxLen = 12;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+          if (cell && cell.v != null) {
+            maxLen = Math.max(maxLen, String(cell.v).length);
+          }
+        }
+        colWidths.push({ wch: Math.min(maxLen + 2, 40) });
+      }
+      worksheet['!cols'] = colWidths;
+
+      XLSX.writeFile(workbook, `MR_PO_Tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
+      showToast('Excel downloaded');
     }
 
     function handleImport(event) {
