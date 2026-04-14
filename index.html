@@ -6,6 +6,7 @@
   <title>MR / PO Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -158,7 +159,6 @@
         grid-template-columns: 1fr;
       }
     }
-    }
 
     .nav-btn.active {
       background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
@@ -189,24 +189,64 @@
   </style>
 </head>
 <body>
-  <div class="mobile-safe-bottom">
+  <section id="authScreen" class="min-h-screen px-4 py-8 flex items-center justify-center">
+    <div class="panel-soft w-full max-w-md rounded-[32px] p-6 md:p-8">
+      <div class="mb-6">
+        <div class="mb-3 inline-flex items-center gap-2 rounded-full soft-block px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
+          <span>●</span> Secure Access
+        </div>
+        <h1 class="display-font text-3xl font-bold tracking-tight">MR / PO Tracker Login</h1>
+        <p class="muted mt-3 text-sm">
+          Sign in with an approved account to view and manage MR / PO records.
+        </p>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="muted mb-2 block text-sm font-semibold">Email</label>
+          <input id="loginEmail" type="email" required class="input-ui" placeholder="name@example.com">
+        </div>
+        <div>
+          <label class="muted mb-2 block text-sm font-semibold">Password</label>
+          <input id="loginPassword" type="password" required class="input-ui" placeholder="Enter password">
+        </div>
+        <button id="loginButton" type="submit" class="w-full rounded-2xl action-gradient px-5 py-3 font-bold text-white">
+          Sign In
+        </button>
+      </form>
+
+      <div class="mt-4 text-center">
+        <button id="authThemeToggle" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">
+          Dark
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div id="appShell" class="mobile-safe-bottom hidden">
     <main class="mx-auto max-w-7xl px-3 pb-24 pt-4 sm:px-4 md:px-6 md:pb-28 md:pt-6 lg:px-8">
       <section class="mb-6 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
         <div class="panel-soft rounded-[28px] p-5 md:p-8">
           <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <div class="mb-3 inline-flex items-center gap-2 rounded-full soft-block px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-                <span>●</span> Local JSON Workspace
+                <span>●</span> Supabase Workspace
               </div>
               <h1 class="display-font text-3xl font-bold tracking-tight md:text-5xl">MR / PO Tracker</h1>
               <p class="muted mt-3 max-w-2xl text-sm md:text-base">
                 A cleaner tracking workspace for procurement follow-up, approvals, vendor details, LPO cost, and delivery monitoring.
               </p>
             </div>
-            <div class="flex items-center gap-2">
-              <button id="themeToggle" onclick="toggleTheme()" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">Dark</button>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="themeToggle" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">Dark</button>
+              <button id="logoutButton" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">Sign Out</button>
               <button onclick="openModal()" class="rounded-2xl action-gradient px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(59,130,246,0.28)]">Add Record</button>
             </div>
+          </div>
+
+          <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
+            <span class="chip" style="background:#dcfce7;color:#166534;border-color:#bbf7d0">Signed In</span>
+            <span id="userEmailDisplay" class="muted"></span>
           </div>
 
           <div class="flex flex-wrap gap-3">
@@ -221,13 +261,13 @@
               <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Actions</div>
               <h2 class="display-font mt-1 text-2xl font-bold">Control Center</h2>
             </div>
-            <div class="rounded-2xl px-3 py-2 text-sm font-semibold text-[var(--text)] ring-1 ring-white/30 soft-block">Local</div>
+            <div class="rounded-2xl px-3 py-2 text-sm font-semibold text-[var(--text)] ring-1 ring-white/30 soft-block">Online</div>
           </div>
 
           <div class="space-y-3">
             <button onclick="document.getElementById('importFile').click()" class="input-ui text-left">
               <div class="font-semibold">Import JSON</div>
-              <div class="muted mt-1 text-sm">Load saved MR / PO records</div>
+              <div class="muted mt-1 text-sm">Replace all online records from JSON</div>
             </button>
             <button onclick="exportData()" class="input-ui text-left">
               <div class="font-semibold">Export JSON</div>
@@ -402,21 +442,31 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'mr_po_tracker_local_v1';
-    let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const SUPABASE_URL = 'https://irfryahjlvgfmbjmpdje.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DuMmB81SkD-1fnXZKXnvyA_N_JcKgE8';
+    const TABLE_NAME = 'mr_po_records';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+    let records = [];
     let currentPage = 'dashboard';
     let darkMode = JSON.parse(localStorage.getItem('mr_po_tracker_dark_mode') || 'false');
+    let currentUser = null;
 
     function applyTheme() {
       document.body.classList.toggle('dark-mode', darkMode);
+      const themeText = darkMode ? 'Light' : 'Dark';
       const btn = document.getElementById('themeToggle');
-      if (btn) btn.textContent = darkMode ? 'Light' : 'Dark';
+      const authBtn = document.getElementById('authThemeToggle');
+      if (btn) btn.textContent = themeText;
+      if (authBtn) authBtn.textContent = themeText;
       localStorage.setItem('mr_po_tracker_dark_mode', JSON.stringify(darkMode));
     }
 
     function toggleTheme() {
       darkMode = !darkMode;
       applyTheme();
+      renderApp();
     }
 
     function showToast(message) {
@@ -427,12 +477,19 @@
       showToast._t = setTimeout(() => toast.classList.add('hidden'), 2200);
     }
 
-    function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-      renderApp();
+    function showAuthScreen() {
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('appShell').classList.add('hidden');
+      currentUser = null;
     }
 
-    function uid() { return Date.now().toString() + Math.random().toString(36).slice(2, 7); }
+    function showAppScreen(user) {
+      currentUser = user;
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+      document.getElementById('userEmailDisplay').textContent = user?.email || '';
+      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', { dateStyle: 'medium' });
+    }
 
     function switchPage(page) {
       currentPage = page;
@@ -678,8 +735,7 @@
 
     function updateQuickButtons(typeFilter) {
       const base = 'soft-block rounded-2xl border px-4 py-4 text-left';
-      const ids = ['quickAll','quickAMC','quickSO'];
-      ids.forEach(id => {
+      ['quickAll','quickAMC','quickSO'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.className = base;
       });
@@ -748,57 +804,174 @@
       document.getElementById('modal').classList.add('flex');
     }
 
-    function deleteRecord(id) {
-      if (!confirm('Delete this record?')) return;
-      records = records.filter(r => r.id !== id);
-      saveLocal();
-      showToast('Record deleted');
+    function mapRowToRecord(row) {
+      return {
+        id: String(row.id),
+        mrCreatedDate: row.mr_created_date,
+        plmApprovedDate: row.plm_approved_date,
+        smApprovedDate: row.sm_approved_date,
+        sharedToProcurementDate: row.shared_to_procurement_date,
+        daysElapsed: row.days_elapsed,
+        mrNumber: row.mr_number,
+        materialDetails: row.material_details,
+        mrType: row.mr_type,
+        soNumber: row.so_number,
+        lpoIssuedDate: row.lpo_issued_date,
+        lpoNumber: row.lpo_number,
+        vendorDetails: row.vendor_details,
+        lpoCost: row.lpo_cost,
+        deliveryStatus: row.delivery_status,
+        deliveryDate: row.delivery_date,
+        remarks: row.remarks
+      };
     }
 
-    document.getElementById('trackerForm').addEventListener('submit', function(e) {
+    async function loadRecordsFromSupabase() {
+      const { data, error } = await supabaseClient
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        showToast('Failed to load records');
+        return;
+      }
+
+      records = (data || []).map(mapRowToRecord);
+      renderApp();
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm('Delete this record?')) return;
+
+      const { data, error } = await supabaseClient
+        .from(TABLE_NAME)
+        .delete()
+        .eq('id', Number(id))
+        .select();
+
+      if (error) {
+        console.error(error);
+        showToast('Delete failed');
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        showToast('Record not deleted');
+        return;
+      }
+
+      showToast('Record deleted');
+      await loadRecordsFromSupabase();
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      const button = document.getElementById('loginButton');
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      button.disabled = true;
+      button.textContent = 'Signing In...';
+
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      button.disabled = false;
+      button.textContent = 'Sign In';
+
+      if (error) {
+        console.error(error);
+        showToast(error.message || 'Login failed');
+        return;
+      }
+
+      document.getElementById('loginForm').reset();
+      showToast('Login successful');
+    }
+
+    async function handleLogout() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        console.error(error);
+        showToast('Failed to sign out');
+        return;
+      }
+      records = [];
+      renderApp();
+      showAuthScreen();
+      showToast('Signed out');
+    }
+
+    document.getElementById('trackerForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+
       const mrType = document.getElementById('mrType').value;
       const soNumber = document.getElementById('soNumber').value.trim();
+
       if (mrType === 'Sales Order' && !soNumber) {
         showToast('SO Number is mandatory for Sales Order');
         return;
       }
 
       const payload = {
-        mrCreatedDate: document.getElementById('mrCreatedDate').value,
-        plmApprovedDate: document.getElementById('plmApprovedDate').value,
-        smApprovedDate: document.getElementById('smApprovedDate').value,
-        sharedToProcurementDate: document.getElementById('sharedToProcurementDate').value,
-        daysElapsed: calculateDaysElapsed(
+        mr_created_date: document.getElementById('mrCreatedDate').value || null,
+        plm_approved_date: document.getElementById('plmApprovedDate').value || null,
+        sm_approved_date: document.getElementById('smApprovedDate').value || null,
+        shared_to_procurement_date: document.getElementById('sharedToProcurementDate').value || null,
+        days_elapsed: calculateDaysElapsed(
           document.getElementById('sharedToProcurementDate').value,
           document.getElementById('deliveryDate').value,
           document.getElementById('deliveryStatus').value
-        ),
-        mrNumber: document.getElementById('mrNumber').value.trim(),
-        materialDetails: document.getElementById('materialDetails').value.trim(),
-        mrType,
-        soNumber: mrType === 'Sales Order' ? soNumber : '',
-        lpoIssuedDate: document.getElementById('lpoIssuedDate').value,
-        lpoNumber: document.getElementById('lpoNumber').value.trim(),
-        vendorDetails: document.getElementById('vendorDetails').value.trim(),
-        lpoCost: document.getElementById('lpoCost').value,
-        deliveryStatus: document.getElementById('deliveryStatus').value,
-        deliveryDate: document.getElementById('deliveryDate').value,
+        ) || 0,
+        mr_number: document.getElementById('mrNumber').value.trim(),
+        material_details: document.getElementById('materialDetails').value.trim(),
+        mr_type: mrType,
+        so_number: mrType === 'Sales Order' ? soNumber : '',
+        lpo_issued_date: document.getElementById('lpoIssuedDate').value || null,
+        lpo_number: document.getElementById('lpoNumber').value.trim(),
+        vendor_details: document.getElementById('vendorDetails').value.trim(),
+        lpo_cost: Number(document.getElementById('lpoCost').value || 0),
+        delivery_status: document.getElementById('deliveryStatus').value,
+        delivery_date: document.getElementById('deliveryDate').value || null,
         remarks: document.getElementById('remarks').value.trim()
       };
 
       const id = document.getElementById('editId').value;
+
       if (id) {
-        const idx = records.findIndex(r => r.id === id);
-        if (idx !== -1) records[idx] = { ...records[idx], ...payload };
+        const { error } = await supabaseClient
+          .from(TABLE_NAME)
+          .update(payload)
+          .eq('id', Number(id));
+
+        if (error) {
+          console.error(error);
+          showToast('Record update failed');
+          return;
+        }
+
         showToast('Record updated');
       } else {
-        records.push({ id: uid(), ...payload });
+        const { error } = await supabaseClient
+          .from(TABLE_NAME)
+          .insert([payload]);
+
+        if (error) {
+          console.error(error);
+          showToast('Record add failed');
+          return;
+        }
+
         showToast('Record added');
       }
 
-      saveLocal();
       closeModal();
+      await loadRecordsFromSupabase();
     });
 
     function exportData() {
@@ -855,29 +1028,100 @@
       showToast('Excel downloaded');
     }
 
-    function handleImport(event) {
+    async function handleImport(event) {
       const file = event.target.files[0];
       if (!file) return;
+
+      if (!confirm('This will replace all current online records with the JSON file data. Continue?')) {
+        event.target.value = '';
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const imported = JSON.parse(e.target.result);
-          if (!Array.isArray(imported)) throw new Error('Invalid');
-          records = imported;
-          saveLocal();
+          if (!Array.isArray(imported)) throw new Error('Invalid JSON');
+
+          const rows = imported.map(item => ({
+            mr_created_date: item.mrCreatedDate || null,
+            plm_approved_date: item.plmApprovedDate || null,
+            sm_approved_date: item.smApprovedDate || null,
+            shared_to_procurement_date: item.sharedToProcurementDate || null,
+            days_elapsed: Number(item.daysElapsed || 0),
+            mr_number: (item.mrNumber || '').trim(),
+            material_details: item.materialDetails || '',
+            mr_type: item.mrType || 'AMC',
+            so_number: item.soNumber || '',
+            lpo_issued_date: item.lpoIssuedDate || null,
+            lpo_number: item.lpoNumber || '',
+            vendor_details: item.vendorDetails || '',
+            lpo_cost: Number(item.lpoCost || 0),
+            delivery_status: item.deliveryStatus || 'Pending',
+            delivery_date: item.deliveryDate || null,
+            remarks: item.remarks || ''
+          }));
+
+          const { error: deleteError } = await supabaseClient
+            .from(TABLE_NAME)
+            .delete()
+            .neq('id', 0);
+
+          if (deleteError) {
+            console.error(deleteError);
+            showToast('Failed to clear old records');
+            return;
+          }
+
+          if (rows.length) {
+            const { error: insertError } = await supabaseClient
+              .from(TABLE_NAME)
+              .insert(rows);
+
+            if (insertError) {
+              console.error(insertError);
+              showToast('Import failed');
+              return;
+            }
+          }
+
           showToast('JSON imported');
+          await loadRecordsFromSupabase();
         } catch (err) {
+          console.error(err);
           showToast('Invalid JSON file');
         }
       };
+
       reader.readAsText(file);
       event.target.value = '';
     }
 
-    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', { dateStyle: 'medium' });
-    toggleSONumberField();
-    applyTheme();
-    renderApp();
+    async function handleSessionChange(session) {
+      if (!session?.user) {
+        showAuthScreen();
+        return;
+      }
+      showAppScreen(session.user);
+      await loadRecordsFromSupabase();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      applyTheme();
+      toggleSONumberField();
+
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+      document.getElementById('authThemeToggle').addEventListener('click', toggleTheme);
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+      document.getElementById('logoutButton').addEventListener('click', handleLogout);
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      await handleSessionChange(session);
+
+      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        await handleSessionChange(session);
+      });
+    });
   </script>
 </body>
 </html>
