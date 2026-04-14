@@ -848,28 +848,33 @@
 
     async function deleteRecord(id) {
       if (!confirm('Delete this record?')) return;
-
-      const { data, error } = await supabaseClient
-        .from(TABLE_NAME)
-        .delete()
-        .eq('id', Number(id))
-        .select();
-
-      if (error) {
-        console.error(error);
-        showToast(error.message || 'Delete failed');
-        return;
+    
+      try {
+        const { data, error } = await supabaseClient
+          .from(TABLE_NAME)
+          .delete()
+          .eq('id', Number(id))
+          .select();
+    
+        if (error) {
+          console.error('Delete error:', error);
+          showToast(error.message || 'Delete failed');
+          return;
+        }
+    
+        if (!data || data.length === 0) {
+          console.warn('Delete returned no rows');
+          showToast('Delete not allowed or record not found');
+          return;
+        }
+    
+        showToast('Record deleted');
+        await loadRecordsFromSupabase();
+      } catch (err) {
+        console.error('Delete exception:', err);
+        showToast('Delete failed');
       }
-
-      if (!data || data.length === 0) {
-        showToast('Record not deleted');
-        return;
-      }
-
-      showToast('Record deleted');
-      await loadRecordsFromSupabase();
     }
-
     async function handleLogin(event) {
       event.preventDefault();
 
