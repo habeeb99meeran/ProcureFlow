@@ -775,10 +775,16 @@
     }
 
     function closeModal() {
+      document.getElementById('trackerForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('daysElapsed').value = '';
+      document.getElementById('mrType').value = 'AMC';
+      toggleSONumberField();
+      document.getElementById('saveRecordButton').disabled = false;
+      document.getElementById('saveRecordButton').textContent = 'Save Record';
       document.getElementById('modal').classList.add('hidden');
       document.getElementById('modal').classList.remove('flex');
     }
-
     function editRecord(id) {
       const r = records.find(x => x.id === id);
       if (!r) return;
@@ -920,6 +926,7 @@
       e.preventDefault();
 
       const saveBtn = document.getElementById('saveRecordButton');
+      const form = document.getElementById('trackerForm');
       const mrType = document.getElementById('mrType').value;
       const soNumber = document.getElementById('soNumber').value.trim();
 
@@ -963,24 +970,41 @@
         saveBtn.textContent = 'Saving...';
 
         if (id) {
-          const { error } = await supabaseClient
+          const { data, error } = await supabaseClient
             .from(TABLE_NAME)
             .update(payload)
-            .eq('id', Number(id));
+            .eq('id', Number(id))
+            .select();
 
           if (error) throw error;
+          if (!data || data.length === 0) {
+            throw new Error('Update did not return any row');
+          }
+
           showToast('Record updated');
         } else {
-          const { error } = await supabaseClient
+          const { data, error } = await supabaseClient
             .from(TABLE_NAME)
-            .insert([payload]);
+            .insert([payload])
+            .select();
 
           if (error) throw error;
+          if (!data || data.length === 0) {
+            throw new Error('Insert did not return any row');
+          }
+
           showToast('Record added');
         }
 
-        closeModal();
         await loadRecordsFromSupabase();
+
+        form.reset();
+        document.getElementById('editId').value = '';
+        document.getElementById('daysElapsed').value = '';
+        document.getElementById('mrType').value = 'AMC';
+        toggleSONumberField();
+
+        closeModal();
       } catch (err) {
         console.error('Save error:', err);
         showToast(err.message || 'Record save failed');
