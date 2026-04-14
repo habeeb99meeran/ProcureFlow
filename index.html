@@ -431,7 +431,7 @@
 
         <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-transparent pt-4 pb-1 sm:flex-row sm:justify-end">
           <button type="button" onclick="closeModal()" class="rounded-2xl soft-block border px-5 py-3 font-semibold text-[var(--text)]">Cancel</button>
-          <button type="submit" class="rounded-2xl action-gradient px-5 py-3 font-bold text-white shadow-[0_12px_28px_rgba(59,130,246,0.24)]">Save Record</button>
+          <button id="saveRecordButton" type="submit" class="rounded-2xl action-gradient px-5 py-3 font-bold text-white shadow-[0_12px_28px_rgba(59,130,246,0.24)]">Save Record</button>
         </div>
       </form>
     </div>
@@ -768,6 +768,8 @@
       document.getElementById('deliveryDate').value = '';
       document.getElementById('mrType').value = 'AMC';
       toggleSONumberField();
+      document.getElementById('saveRecordButton').disabled = false;
+      document.getElementById('saveRecordButton').textContent = 'Save Record';
       document.getElementById('modal').classList.remove('hidden');
       document.getElementById('modal').classList.add('flex');
     }
@@ -799,6 +801,8 @@
       document.getElementById('remarks').value = r.remarks || '';
       document.getElementById('modalLabel').textContent = 'Edit entry';
       document.getElementById('modalTitle').textContent = 'Update MR / PO record';
+      document.getElementById('saveRecordButton').disabled = false;
+      document.getElementById('saveRecordButton').textContent = 'Save Record';
       toggleSONumberField();
       document.getElementById('modal').classList.remove('hidden');
       document.getElementById('modal').classList.add('flex');
@@ -834,7 +838,7 @@
 
       if (error) {
         console.error(error);
-        showToast('Failed to load records');
+        showToast(error.message || 'Failed to load records');
         return;
       }
 
@@ -853,7 +857,7 @@
 
       if (error) {
         console.error(error);
-        showToast('Delete failed');
+        showToast(error.message || 'Delete failed');
         return;
       }
 
@@ -898,7 +902,7 @@
       const { error } = await supabaseClient.auth.signOut();
       if (error) {
         console.error(error);
-        showToast('Failed to sign out');
+        showToast(error.message || 'Failed to sign out');
         return;
       }
       records = [];
@@ -910,6 +914,7 @@
     document.getElementById('trackerForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
+      const saveBtn = document.getElementById('saveRecordButton');
       const mrType = document.getElementById('mrType').value;
       const soNumber = document.getElementById('soNumber').value.trim();
 
@@ -923,11 +928,11 @@
         plm_approved_date: document.getElementById('plmApprovedDate').value || null,
         sm_approved_date: document.getElementById('smApprovedDate').value || null,
         shared_to_procurement_date: document.getElementById('sharedToProcurementDate').value || null,
-        days_elapsed: calculateDaysElapsed(
+        days_elapsed: Number(calculateDaysElapsed(
           document.getElementById('sharedToProcurementDate').value,
           document.getElementById('deliveryDate').value,
           document.getElementById('deliveryStatus').value
-        ) || 0,
+        ) || 0),
         mr_number: document.getElementById('mrNumber').value.trim(),
         material_details: document.getElementById('materialDetails').value.trim(),
         mr_type: mrType,
@@ -941,37 +946,43 @@
         remarks: document.getElementById('remarks').value.trim()
       };
 
-      const id = document.getElementById('editId').value;
-
-      if (id) {
-        const { error } = await supabaseClient
-          .from(TABLE_NAME)
-          .update(payload)
-          .eq('id', Number(id));
-
-        if (error) {
-          console.error(error);
-          showToast('Record update failed');
-          return;
-        }
-
-        showToast('Record updated');
-      } else {
-        const { error } = await supabaseClient
-          .from(TABLE_NAME)
-          .insert([payload]);
-
-        if (error) {
-          console.error(error);
-          showToast('Record add failed');
-          return;
-        }
-
-        showToast('Record added');
+      if (!payload.mr_number) {
+        showToast('MR Number is required');
+        return;
       }
 
-      closeModal();
-      await loadRecordsFromSupabase();
+      const id = document.getElementById('editId').value;
+
+      try {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        if (id) {
+          const { error } = await supabaseClient
+            .from(TABLE_NAME)
+            .update(payload)
+            .eq('id', Number(id));
+
+          if (error) throw error;
+          showToast('Record updated');
+        } else {
+          const { error } = await supabaseClient
+            .from(TABLE_NAME)
+            .insert([payload]);
+
+          if (error) throw error;
+          showToast('Record added');
+        }
+
+        closeModal();
+        await loadRecordsFromSupabase();
+      } catch (err) {
+        console.error('Save error:', err);
+        showToast(err.message || 'Record save failed');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Record';
+      }
     });
 
     function exportData() {
@@ -1069,7 +1080,7 @@
 
           if (deleteError) {
             console.error(deleteError);
-            showToast('Failed to clear old records');
+            showToast(deleteError.message || 'Failed to clear old records');
             return;
           }
 
@@ -1080,7 +1091,7 @@
 
             if (insertError) {
               console.error(insertError);
-              showToast('Import failed');
+              showToast(insertError.message || 'Import failed');
               return;
             }
           }
@@ -1089,7 +1100,7 @@
           await loadRecordsFromSupabase();
         } catch (err) {
           console.error(err);
-          showToast('Invalid JSON file');
+          showToast(err.message || 'Invalid JSON file');
         }
       };
 
