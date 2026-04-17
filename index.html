@@ -417,6 +417,7 @@
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div><label class="muted mb-2 block text-sm font-semibold">MR Type</label><select id="mrType" onchange="toggleSONumberField()" class="input-ui"><option value="AMC">AMC</option><option value="Sales Order">Sales Order</option></select></div>
           <div id="soFieldWrap"><label class="muted mb-2 block text-sm font-semibold">SO Number</label><input id="soNumber" class="input-ui" placeholder="Mandatory for Sales Order"></div>
+          <div><label class="muted mb-2 block text-sm font-semibold">FYNA MR No.</label><input id="fynaMrNo" class="input-ui" placeholder="Enter FYNA MR No."></div>
           <div><label class="muted mb-2 block text-sm font-semibold">LPO Issued Date</label><input type="date" id="lpoIssuedDate" class="input-ui"></div>
           <div><label class="muted mb-2 block text-sm font-semibold">LPO Number</label><input id="lpoNumber" class="input-ui" placeholder="Enter LPO number"></div>
           <div><label class="muted mb-2 block text-sm font-semibold">Supplier / Vendor Details</label><input id="vendorDetails" class="input-ui" placeholder="Enter supplier or vendor"></div>
@@ -649,6 +650,7 @@
               <span class="chip" style="${getTypeTone(r.mrType)}">${r.mrType}</span>
               <span class="chip" style="${getStatusTone(r.deliveryStatus)}">${r.deliveryStatus}</span>
               ${r.soNumber ? `<span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">SO ${r.soNumber}</span>` : ''}
+              ${r.fynaMrNo ? `<span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">FYNA ${r.fynaMrNo}</span>` : ''}
             </div>
 
             <div class="soft-block mb-4 rounded-[22px] border p-4">
@@ -787,6 +789,7 @@
       document.getElementById('editId').value = '';
       document.getElementById('daysElapsed').value = '';
       document.getElementById('mrType').value = 'AMC';
+      document.getElementById('fynaMrNo').value = '';
       toggleSONumberField();
       document.getElementById('saveRecordButton').disabled = false;
       document.getElementById('saveRecordButton').textContent = 'Save Record';
@@ -806,6 +809,7 @@
       document.getElementById('materialDetails').value = r.materialDetails || '';
       document.getElementById('mrType').value = r.mrType || 'AMC';
       document.getElementById('soNumber').value = r.soNumber || '';
+      document.getElementById('fynaMrNo').value = r.fynaMrNo || '';
       document.getElementById('lpoIssuedDate').value = r.lpoIssuedDate || '';
       document.getElementById('lpoNumber').value = r.lpoNumber || '';
       document.getElementById('vendorDetails').value = r.vendorDetails || '';
@@ -834,6 +838,7 @@
         materialDetails: row.material_details,
         mrType: row.mr_type,
         soNumber: row.so_number,
+        fynaMrNo: row.fyna_mr_no,
         lpoIssuedDate: row.lpo_issued_date,
         lpoNumber: row.lpo_number,
         vendorDetails: row.vendor_details,
@@ -957,6 +962,7 @@
         material_details: document.getElementById('materialDetails').value.trim(),
         mr_type: mrType,
         so_number: mrType === 'Sales Order' ? soNumber : '',
+        fyna_mr_no: document.getElementById('fynaMrNo').value.trim(),
         lpo_issued_date: document.getElementById('lpoIssuedDate').value || null,
         lpo_number: document.getElementById('lpoNumber').value.trim(),
         vendor_details: document.getElementById('vendorDetails').value.trim(),
@@ -1044,6 +1050,7 @@
         'Material Details': r.materialDetails || '',
         'MR Type': r.mrType || '',
         'SO Number': r.soNumber || '',
+        'FYNA MR No.': r.fynaMrNo || '',
         'LPO Issued Date': formatDate(r.lpoIssuedDate),
         'LPO Number': r.lpoNumber || '',
         'Supplier / Vendor Details': r.vendorDetails || '',
@@ -1101,6 +1108,7 @@
             material_details: item.materialDetails || '',
             mr_type: item.mrType || 'AMC',
             so_number: item.soNumber || '',
+            fyna_mr_no: item.fynaMrNo || '',
             lpo_issued_date: item.lpoIssuedDate || null,
             lpo_number: item.lpoNumber || '',
             vendor_details: item.vendorDetails || '',
