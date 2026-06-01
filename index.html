@@ -3,1181 +3,1540 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MR / PO Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ProcureFlow — MR/PO Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
-
     :root {
-      --bg-1: #dbeafe;
-      --bg-2: #ede9fe;
-      --bg-3: #ccfbf1;
-      --text: #0f172a;
-      --muted: #5b6b82;
-      --line: rgba(255,255,255,0.45);
-      --panel: rgba(255,255,255,0.22);
-      --panel-strong: rgba(255,255,255,0.34);
-      --panel-soft: rgba(255,255,255,0.18);
-      --shadow: 0 20px 60px rgba(31, 41, 55, 0.18);
-      --shadow-soft: 0 10px 30px rgba(31, 41, 55, 0.12);
-      --accent-a: #2563eb;
-      --accent-b: #7c3aed;
-      --accent-c: #0f766e;
-      --soft-block: rgba(255,255,255,0.18);
-      --soft-border: rgba(255,255,255,0.35);
-      --soft-text: #1e293b;
+      --bg: #0b0f1a;
+      --surface: #111827;
+      --surface-2: #1a2236;
+      --surface-3: #1f2d42;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --text: #e8edf5;
+      --text-2: #8fa0b8;
+      --text-3: #5a6e88;
+      --accent: #3b82f6;
+      --accent-2: #6366f1;
+      --accent-glow: rgba(59,130,246,0.18);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --orange: #f97316;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,0.5);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
     }
-
-    body.dark-mode {
-      --bg-1: #0f172a;
-      --bg-2: #1e1b4b;
-      --bg-3: #083344;
-      --text: #e8eefc;
-      --muted: #94a3b8;
-      --line: rgba(255,255,255,0.12);
-      --panel: rgba(15,23,42,0.42);
-      --panel-strong: rgba(15,23,42,0.56);
-      --panel-soft: rgba(15,23,42,0.32);
-      --shadow: 0 24px 70px rgba(2,6,23,0.42);
-      --shadow-soft: 0 14px 34px rgba(2,6,23,0.26);
-      --soft-block: rgba(255,255,255,0.05);
-      --soft-border: rgba(255,255,255,0.10);
-      --soft-text: #dbe7ff;
+    [data-theme="light"] {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface-2: #f7f9fc;
+      --surface-3: #eef2f8;
+      --border: rgba(0,0,0,0.08);
+      --border-hover: rgba(0,0,0,0.15);
+      --text: #0f1d2e;
+      --text-2: #4a5f78;
+      --text-3: #8fa0b8;
+      --accent: #2563eb;
+      --accent-2: #4f46e5;
+      --accent-glow: rgba(37,99,235,0.12);
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
     }
-
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background:
-        radial-gradient(circle at 10% 10%, rgba(37,99,235,0.45), transparent 24%),
-        radial-gradient(circle at 90% 8%, rgba(124,58,237,0.35), transparent 20%),
-        radial-gradient(circle at 50% 100%, rgba(15,118,110,0.28), transparent 26%),
-        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 52%, var(--bg-3) 100%);
+      font-family: var(--font);
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      -webkit-tap-highlight-color: transparent;
-      transition: background .25s ease, color .25s ease;
+      font-size: 14px;
+      line-height: 1.6;
+      transition: background 0.2s, color 0.2s;
     }
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    @media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
 
-    .display-font { font-family: 'Space Grotesk', sans-serif; }
-
-    .panel,
-    .panel-soft {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-soft);
-      backdrop-filter: blur(24px) saturate(160%);
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
-      position: relative;
-      overflow: hidden;
+    /* ── Sidebar ── */
+    .sidebar {
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 24px 16px; gap: 8px;
+      transition: background 0.2s, border 0.2s;
     }
-
-    .panel-soft {
-      background: linear-gradient(135deg, var(--panel-strong), var(--panel-soft));
-      box-shadow: var(--shadow);
+    @media (max-width: 900px) { .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; } }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 12px 24px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
     }
-
-    .panel::before,
-    .panel-soft::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04));
-      pointer-events: none;
+    .brand-icon {
+      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center; font-size: 18px;
+      box-shadow: 0 6px 20px var(--accent-glow);
     }
+    .brand-text h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-text p { font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 1px; }
 
-    .input-ui {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.18);
-      color: var(--text);
-      border-radius: 16px;
-      padding: 14px 16px;
-      font: inherit;
-      outline: none;
-      transition: .2s ease;
-      backdrop-filter: blur(18px) saturate(150%);
-      -webkit-backdrop-filter: blur(18px) saturate(150%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+    .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); padding: 4px 14px 6px; margin-top: 8px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 11px 14px; border-radius: var(--radius-sm);
+      background: none; border: none; color: var(--text-2);
+      font: inherit; font-weight: 500; font-size: 13.5px; cursor: pointer; text-align: left;
+      transition: all 0.15s; position: relative;
     }
+    .nav-btn:hover { background: var(--surface-2); color: var(--text); }
+    .nav-btn.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+    .nav-btn .icon { width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-spacer { flex: 1; }
+    .sidebar-footer { padding: 16px 12px 0; border-top: 1px solid var(--border); }
+    .sync-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+    .sync-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
 
-    body.dark-mode .input-ui {
-      background: rgba(15,23,42,0.26);
+    /* ── Main ── */
+    .main { overflow: hidden; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      backdrop-filter: blur(12px);
     }
+    @media (max-width: 600px) { .topbar { padding: 12px 16px; } }
+    .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .page-subtitle { font-size: 12.5px; color: var(--text-3); margin-top: 1px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .content { padding: 24px 28px; }
+    @media (max-width: 600px) { .content { padding: 16px; } }
 
-    .input-ui::placeholder { color: var(--muted); }
-    .input-ui:focus {
-      border-color: rgba(255,255,255,0.55);
-      box-shadow: 0 0 0 4px rgba(255,255,255,0.10);
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
     }
+    .btn:hover { background: var(--surface-2); border-color: var(--border-hover); }
+    .btn.primary {
+      background: var(--accent); border-color: transparent; color: white;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn.primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+    .btn.sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn.danger { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); color: var(--red); }
+    .btn.success-btn { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.25); color: var(--green); }
+    .btn .btn-icon { font-size: 15px; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--surface);
+      display: grid; place-items: center; cursor: pointer; color: var(--text-2);
+      transition: all 0.15s; font-size: 15px;
+    }
+    .icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-hover); }
 
-    .muted { color: var(--muted); }
+    /* ── Cards & Stats ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); transition: background 0.2s, border 0.2s;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .card-subtitle { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      position: relative; overflow: hidden; transition: all 0.2s;
+    }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent-color, var(--accent)); }
+    .stat-card:hover { border-color: var(--border-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+    .stat-value { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--stat-color, var(--text)); }
+    .stat-sub { font-size: 11.5px; color: var(--text-3); margin-top: 6px; }
+
+    /* ── Dashboard grid ── */
+    .dash-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 20px; }
+    @media (max-width: 1000px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    .mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .mini-card {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;
+    }
+    .mini-card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+    .mini-card-value { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th {
+      text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13.5px; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.12s; cursor: default; }
+    tbody tr:hover { background: var(--surface-2); }
+
+
+
+    /* ── Record Cards ── */
+    .records-card-grid { display: grid; gap: 14px; }
+    .record-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      box-shadow: var(--shadow); transition: all 0.18s;
+    }
+    .record-card:hover { border-color: var(--border-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .record-card-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+    .record-card-title { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .record-mr { font-family: var(--mono); font-size: 15px; font-weight: 800; color: var(--text); }
+    .record-card-sub { color: var(--text-3); font-size: 12.5px; margin-top: 5px; }
+    .record-card-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+    .record-details-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    @media (max-width: 1150px) { .record-details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 780px) { .record-card-header { flex-direction: column; } .record-card-actions { justify-content: flex-start; } .record-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .record-details-grid { grid-template-columns: 1fr; } }
+    .record-field { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; min-height: 62px; }
+    .record-field.wide { grid-column: span 2; }
+    @media (max-width: 520px) { .record-field.wide { grid-column: span 1; } }
+    .record-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 5px; }
+    .record-value { font-size: 13.5px; color: var(--text); font-weight: 600; word-break: break-word; }
+    .record-value.muted { color: var(--text-3); font-weight: 500; }
+    .record-material { margin-top: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+    .record-material .record-value { font-weight: 500; line-height: 1.55; white-space: pre-wrap; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.04em; white-space: nowrap; border: 1px solid transparent;
+    }
+    .badge-blue   { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.2); }
+    .badge-green  { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.2); }
+    .badge-amber  { background: rgba(245,158,11,0.12);  color: #fbbf24; border-color: rgba(245,158,11,0.2); }
+    .badge-red    { background: rgba(239,68,68,0.12);   color: #f87171; border-color: rgba(239,68,68,0.2); }
+    .badge-purple { background: rgba(139,92,246,0.12);  color: #a78bfa; border-color: rgba(139,92,246,0.2); }
+    .badge-gray   { background: rgba(148,163,184,0.1);  color: var(--text-2); border-color: rgba(148,163,184,0.15); }
+    [data-theme="light"] .badge-blue   { color: #1d4ed8; border-color: rgba(59,130,246,0.3); }
+    [data-theme="light"] .badge-green  { color: #059669; border-color: rgba(16,185,129,0.3); }
+    [data-theme="light"] .badge-amber  { color: #d97706; border-color: rgba(245,158,11,0.3); }
+    [data-theme="light"] .badge-red    { color: #dc2626; border-color: rgba(239,68,68,0.3); }
+    [data-theme="light"] .badge-purple { color: #6d28d9; border-color: rgba(139,92,246,0.3); }
+
+    /* ── Filters ── */
+    .filters-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .field {
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); border-radius: var(--radius-sm); padding: 9px 13px;
+      font: inherit; font-size: 13px; outline: none;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+    .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .field::placeholder { color: var(--text-3); }
+    input.field { min-width: 220px; }
+    select.field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238fa0b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+
+    /* ── Quick filter chips ── */
+    .chip-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.28);
-      background: rgba(255,255,255,0.14);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-2); cursor: pointer; transition: all 0.15s;
+    }
+    .chip:hover { background: var(--surface-2); color: var(--text); }
+    .chip.active { background: var(--accent-glow); color: var(--accent); border-color: rgba(59,130,246,0.3); }
+
+    /* ── Recent list ── */
+    .recent-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .recent-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .recent-main { flex: 1; min-width: 0; }
+    .recent-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      display: none; align-items: flex-end; justify-content: center;
+      padding: 0;
+    }
+    @media (min-width: 700px) { .modal-backdrop { align-items: center; padding: 24px; } }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-width: 900px;
+      max-height: 95vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+      animation: slideUp 0.2s ease;
+    }
+    @media (min-width: 700px) { .modal-box { border-radius: var(--radius); max-height: 92vh; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header {
+      position: sticky; top: 0; background: var(--surface); z-index: 5;
+      padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer {
+      position: sticky; bottom: 0; background: var(--surface);
+      border-top: 1px solid var(--border); padding: 16px 24px;
+      display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;
     }
 
-    .soft-block {
-      background: var(--soft-block);
-      border-color: var(--soft-border) !important;
-      color: var(--soft-text);
-      backdrop-filter: blur(18px) saturate(150%);
-      -webkit-backdrop-filter: blur(18px) saturate(150%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
-    }
+    /* ── Form ── */
+    .form-grid { display: grid; gap: 16px; }
+    .form-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 640px) { .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); text-transform: uppercase; }
+    .form-group .field { width: 100%; }
+    textarea.field { min-height: 88px; resize: vertical; font: inherit; }
+    .form-separator { grid-column: 1 / -1; border-top: 1px solid var(--border); margin: 4px 0; }
 
-    .fade-up { animation: fadeUp .25s ease-out; }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    /* ── Toast ── */
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+      z-index: 999; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 11px 18px;
+      font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-lg);
+      display: flex; align-items: center; gap: 9px;
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap;
     }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast-icon { font-size: 16px; }
 
-    .grid-auto {
-      display: grid;
-      gap: 20px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: start;
+    /* ── Settings ── */
+    .settings-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+    @media (max-width: 800px) { .settings-grid { grid-template-columns: 1fr; } }
+    .sql-block {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px 16px; font-family: var(--mono); font-size: 11.5px;
+      color: var(--text-2); white-space: pre; overflow-x: auto; line-height: 1.7; margin-top: 12px;
     }
+    .conn-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: rgba(148,163,184,0.08); border: 1px solid var(--border); color: var(--text-3);
+    }
+    .conn-badge.live { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.25); color: var(--green); }
+    .conn-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 56px 20px; color: var(--text-3); }
+    .empty-state .icon { font-size: 42px; margin-bottom: 14px; opacity: 0.5; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Misc ── */
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .text-muted { color: var(--text-3); }
+    .text-mono { font-family: var(--mono); font-size: 12px; }
+    .row-actions { display: flex; gap: 6px; }
+    .view-section { display: none; }
+    .view-section.active { display: block; }
     @media (max-width: 900px) {
-      .grid-auto {
-        grid-template-columns: 1fr;
-      }
+      .app { grid-template-columns: 1fr; }
+      .sidebar { height: auto; }
+      .sidebar .nav-label { display: none; }
+      .sidebar > div:not(.brand):not(.sidebar-footer) { display: inline-flex; flex-wrap: wrap; }
+      .nav-spacer { display: none; }
+      .brand-text p { display: none; }
     }
 
-    .nav-btn.active {
-      background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 12px 28px rgba(37,99,235,0.28);
-    }
+    /* ── Days elapsed color coding ── */
+    .elapsed-ok { color: var(--green); font-weight: 700; }
+    .elapsed-warn { color: var(--amber); font-weight: 700; }
+    .elapsed-alert { color: var(--red); font-weight: 700; }
 
-    .action-gradient {
-      background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
-      box-shadow: 0 16px 34px rgba(37,99,235,0.28);
-    }
+    /* ── Progress bar ── */
+    .progress-track { height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.6s ease; }
 
-    .fab-gradient {
-      background: linear-gradient(135deg, var(--accent-a), var(--accent-b), var(--accent-c));
-      box-shadow: 0 18px 38px rgba(37,99,235,0.30);
-    }
-
-    .mobile-safe-bottom { padding-bottom: 110px; }
-    @media (max-width: 768px) {
-      .mobile-safe-bottom { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-      .mobile-nav { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-    }
-
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 999px; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 999px; }
     ::-webkit-scrollbar-track { background: transparent; }
+
+    .fab {
+      position: fixed; bottom: 28px; right: 28px; z-index: 50;
+      width: 52px; height: 52px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none; color: white; font-size: 24px; cursor: pointer;
+      box-shadow: 0 8px 24px var(--accent-glow); display: none;
+      align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .fab:hover { transform: scale(1.08); }
+    @media (max-width: 900px) { .fab { display: flex; } }
+
+
+    .hidden { display: none !important; }
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 15% 10%, var(--accent-glow), transparent 28%),
+        radial-gradient(circle at 85% 80%, rgba(99,102,241,0.16), transparent 30%),
+        var(--bg);
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow-lg);
+    }
+    .auth-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 22px;
+      box-shadow: 0 8px 28px var(--accent-glow);
+      margin-bottom: 18px;
+    }
+    .auth-title { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }
+    .auth-subtitle { color: var(--text-3); font-size: 13.5px; margin-top: 10px; }
+    .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .auth-note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-3);
+      font-size: 12.5px;
+    }
+    @media (max-width: 520px) {
+      .auth-card { padding: 22px; border-radius: 22px; }
+      .auth-actions { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body>
-  <section id="authScreen" class="min-h-screen px-4 py-8 flex items-center justify-center">
-    <div class="panel-soft w-full max-w-md rounded-[32px] p-6 md:p-8">
-      <div class="mb-6">
-        <div class="mb-3 inline-flex items-center gap-2 rounded-full soft-block px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-          <span>●</span> Secure Access
-        </div>
-        <h1 class="display-font text-3xl font-bold tracking-tight">MR / PO Tracker Login</h1>
-        <p class="muted mt-3 text-sm">
-          Sign in with an approved account to view and manage MR / PO records.
-        </p>
+
+
+<section class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-mark">📦</div>
+    <div class="auth-title">Sign in to ProcureFlow</div>
+    <div class="auth-subtitle">Use your email and password to open the MR / PO tracker and load your procurement records.</div>
+
+    <form id="authForm" style="margin-top:22px;display:grid;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="field" id="authEmail" type="email" placeholder="you@example.com" required>
       </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="field" id="authPassword" type="password" placeholder="Password" required>
+      </div>
+      <div class="auth-actions">
+        <button class="btn primary" id="authSignInBtn" type="submit">Sign In</button>
+        <button class="btn" type="button" onclick="signupSupabase(true)">Create Account</button>
+      </div>
+    </form>
 
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="muted mb-2 block text-sm font-semibold">Email</label>
-          <input id="loginEmail" type="email" required class="input-ui" placeholder="name@example.com">
-        </div>
-        <div>
-          <label class="muted mb-2 block text-sm font-semibold">Password</label>
-          <input id="loginPassword" type="password" required class="input-ui" placeholder="Enter password">
-        </div>
-        <button id="loginButton" type="submit" class="w-full rounded-2xl action-gradient px-5 py-3 font-bold text-white">
-          Sign In
-        </button>
-      </form>
+    <div class="auth-note" id="authStatusMsg">Enter your email and password to continue.</div>
+    <div style="display:flex;justify-content:center;margin-top:14px;">
+      <button class="btn sm" type="button" id="authThemeToggleBtn">Toggle Theme</button>
+    </div>
+  </div>
+</section>
 
-      <div class="mt-4 text-center">
-        <button id="authThemeToggle" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">
-          Dark
-        </button>
+<div class="app hidden" id="appRoot" data-theme="dark">
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">📦</div>
+      <div class="brand-text">
+        <h1>ProcureFlow</h1>
+        <p>MR / PO Tracker</p>
       </div>
     </div>
-  </section>
 
-  <div id="appShell" class="mobile-safe-bottom hidden">
-    <main class="mx-auto max-w-7xl px-3 pb-24 pt-4 sm:px-4 md:px-6 md:pb-28 md:pt-6 lg:px-8">
-      <section class="mb-6 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-        <div class="panel-soft rounded-[28px] p-5 md:p-8">
-          <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div class="mb-3 inline-flex items-center gap-2 rounded-full soft-block px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-                <span>●</span> Supabase Workspace
-              </div>
-              <h1 class="display-font text-3xl font-bold tracking-tight md:text-5xl">MR / PO Tracker</h1>
-              <p class="muted mt-3 max-w-2xl text-sm md:text-base">
-                A cleaner tracking workspace for procurement follow-up, approvals, vendor details, LPO cost, and delivery monitoring.
-              </p>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button id="themeToggle" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">Dark</button>
-              <button id="logoutButton" class="rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-bold text-[var(--text)] backdrop-blur-xl">Sign Out</button>
-              <button onclick="openModal()" class="rounded-2xl action-gradient px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(59,130,246,0.28)]">Add Record</button>
-            </div>
-          </div>
+    <span class="nav-label">Workspace</span>
+    <button class="nav-btn active" data-view="dashboard"><span class="icon">▦</span> Dashboard</button>
+    <button class="nav-btn" data-view="records"><span class="icon">☰</span> MR / PO Records</button>
 
-          <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
-            <span class="chip" style="background:#dcfce7;color:#166534;border-color:#bbf7d0">Signed In</span>
-            <span id="userEmailDisplay" class="muted"></span>
-          </div>
+    <span class="nav-label">Manage</span>
+    <button class="nav-btn" data-view="settings"><span class="icon">⚙</span> Settings & Sync</button>
 
-          <div class="flex flex-wrap gap-3">
-            <button id="tabDashboard" onclick="switchPage('dashboard')" class="nav-btn active rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold">Dashboard</button>
-            <button id="tabList" onclick="switchPage('list')" class="nav-btn rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold">MR / PO List</button>
-          </div>
-        </div>
-
-        <div class="panel rounded-[28px] p-5 md:p-8">
-          <div class="mb-4 flex items-center justify-between">
-            <div>
-              <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Actions</div>
-              <h2 class="display-font mt-1 text-2xl font-bold">Control Center</h2>
-            </div>
-            <div class="rounded-2xl px-3 py-2 text-sm font-semibold text-[var(--text)] ring-1 ring-white/30 soft-block">Online</div>
-          </div>
-
-          <div class="space-y-3">
-            <button onclick="document.getElementById('importFile').click()" class="input-ui text-left">
-              <div class="font-semibold">Import JSON</div>
-              <div class="muted mt-1 text-sm">Replace all online records from JSON</div>
-            </button>
-            <button onclick="exportData()" class="input-ui text-left">
-              <div class="font-semibold">Export JSON</div>
-              <div class="muted mt-1 text-sm">Backup current tracker data</div>
-            </button>
-            <button onclick="exportExcel()" class="input-ui text-left">
-              <div class="font-semibold">Download Excel</div>
-              <div class="muted mt-1 text-sm">Export tracker data in .xlsx format</div>
-            </button>
-            <div class="input-ui">
-              <div class="font-semibold">Today</div>
-              <div id="currentDate" class="muted mt-1 text-sm"></div>
-            </div>
-          </div>
-          <input type="file" id="importFile" class="hidden" accept=".json" onchange="handleImport(event)">
-        </div>
-      </section>
-
-      <section id="dashboardPage">
-        <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" id="statsGrid"></div>
-
-        <section class="mb-6 grid gap-4 lg:grid-cols-[0.95fr,1.05fr]">
-          <div class="panel rounded-[28px] p-4 md:p-5">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Overview</div>
-                <h3 class="display-font mt-1 text-xl font-bold">Tracker Health</h3>
-              </div>
-            </div>
-            <div id="overviewCards" class="grid gap-3 sm:grid-cols-2"></div>
-          </div>
-
-          <div class="panel rounded-[28px] p-4 md:p-5">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Recent Activity</div>
-                <h3 class="display-font mt-1 text-xl font-bold">Latest Entries</h3>
-              </div>
-            </div>
-            <div id="recentList" class="space-y-3"></div>
-          </div>
-        </section>
-      </section>
-
-      <section id="listPage" class="hidden">
-        <section class="mb-6 grid gap-4 lg:grid-cols-[0.9fr,1.1fr]">
-          <div class="panel rounded-[28px] p-4 md:p-5">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Filters</div>
-                <h3 class="display-font mt-1 text-xl font-bold">Refine View</h3>
-              </div>
-              <button onclick="resetFilters()" class="rounded-xl soft-block px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">Reset</button>
-            </div>
-
-            <div class="space-y-3">
-              <input id="searchInput" type="text" placeholder="Search MR, material, vendor, LPO, SO..." oninput="renderApp()" class="input-ui">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <select id="typeFilter" onchange="renderApp()" class="input-ui">
-                  <option value="All">All Types</option>
-                  <option value="AMC">AMC</option>
-                  <option value="Sales Order">Sales Order</option>
-                </select>
-                <select id="statusFilter" onchange="renderApp()" class="input-ui">
-                  <option value="All">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Partially Delivered">Partially Delivered</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-              <select id="sortSelect" onchange="renderApp()" class="input-ui">
-                <option value="recent">Sort: Recent</option>
-                <option value="elapsed">Sort: Days Elapsed</option>
-                <option value="costHigh">Sort: Cost High-Low</option>
-                <option value="costLow">Sort: Cost Low-High</option>
-                <option value="mr">Sort: MR Number</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="panel rounded-[28px] p-4 md:p-5">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <div class="muted text-xs font-semibold uppercase tracking-[0.2em]">Quick Type Filter</div>
-                <h3 class="display-font mt-1 text-xl font-bold">Browse by MR Type</h3>
-              </div>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-3">
-              <button id="quickAll" onclick="quickType('All')" class="soft-block rounded-2xl border px-4 py-4 text-left">
-                <div class="text-sm font-bold">All Records</div>
-                <div class="muted mt-1 text-xs">See everything</div>
-              </button>
-              <button id="quickAMC" onclick="quickType('AMC')" class="soft-block rounded-2xl border px-4 py-4 text-left">
-                <div class="text-sm font-bold">AMC</div>
-                <div class="muted mt-1 text-xs">Annual / contract related</div>
-              </button>
-              <button id="quickSO" onclick="quickType('Sales Order')" class="soft-block rounded-2xl border px-4 py-4 text-left">
-                <div class="text-sm font-bold">Sales Order</div>
-                <div class="muted mt-1 text-xs">SO-linked materials</div>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section id="itemsGrid" class="grid-auto"></section>
-      </section>
-    </main>
-
-    <button onclick="openModal()" class="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl fab-gradient text-white shadow-[0_18px_34px_rgba(59,130,246,0.30)] md:bottom-8 md:right-8">+</button>
-
-    <nav class="mobile-nav panel fixed bottom-0 left-0 right-0 z-50 border-t px-2 py-2 sm:px-4 sm:py-3">
-      <div class="mx-auto grid max-w-7xl grid-cols-4 gap-2 sm:flex sm:items-center sm:justify-between sm:gap-3">
-        <button onclick="switchPage('dashboard')" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-[var(--text)] sm:px-4 sm:text-sm">Dashboard</button>
-        <button onclick="switchPage('list')" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-[var(--text)] sm:px-4 sm:text-sm">List</button>
-        <button onclick="toggleTheme()" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-[var(--text)] sm:px-4 sm:text-sm">Theme</button>
-        <button onclick="openModal()" class="rounded-2xl px-2 py-3 text-[11px] font-semibold text-[var(--text)] sm:px-4 sm:text-sm">Add</button>
+    <div class="nav-spacer"></div>
+    <div class="sidebar-footer">
+      <div class="sync-status">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncLabel">Not connected</span>
       </div>
-    </nav>
-  </div>
+      <div style="margin-top:10px; font-size:11.5px; color:var(--text-3)" id="userEmailSidebar"></div>
+    </div>
+  </aside>
 
-  <div id="modal" class="fixed inset-0 z-[70] hidden items-end justify-center overflow-y-auto bg-slate-950/45 p-0 md:items-center md:p-4">
-    <div class="panel relative my-auto w-full max-w-5xl rounded-t-[28px] p-4 md:max-h-[92vh] md:rounded-[32px] md:p-6">
-      <div class="sticky top-0 z-10 mb-6 flex items-center justify-between rounded-2xl bg-transparent pb-3 pt-1">
-        <div>
-          <div id="modalLabel" class="muted text-xs font-semibold uppercase tracking-[0.2em]">New entry</div>
-          <h2 id="modalTitle" class="display-font mt-1 text-2xl font-bold">Create MR / PO record</h2>
-        </div>
-        <button onclick="closeModal()" class="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">Close</button>
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="topbarTitle">Dashboard</div>
+        <div class="page-subtitle" id="topbarSub">Procurement overview & analytics</div>
       </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeToggleBtn" title="Toggle theme">🌙</button>
+        <button class="btn sm" onclick="exportExcel()"><span>↓</span> Excel</button>
+        <button class="btn sm" onclick="exportJson()"><span>↓</span> JSON</button>
+        <label class="btn sm" style="cursor:pointer;"><span>↑</span> Import <input type="file" id="importFile" accept=".json" hidden onchange="handleImport(event)"></label>
+        <button class="btn primary" id="addRecordBtn" onclick="openModal()"><span>+</span> Add Record</button>
+      </div>
+    </div>
 
-      <form id="trackerForm" class="max-h-[78vh] space-y-5 overflow-y-auto pr-1 md:max-h-[74vh] md:pr-2">
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <section class="view-section active" id="view-dashboard">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Tracker Health</div>
+                <div class="card-subtitle">Overview of procurement activity</div>
+              </div>
+            </div>
+            <div class="mini-cards" id="overviewCards"></div>
+            <div style="margin-top:20px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:6px;">
+                <span>Delivery Completion Rate</span>
+                <span id="completionPct">0%</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" id="completionBar" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Entries</div>
+              <span class="text-muted" style="font-size:12px;">Last 6 added</span>
+            </div>
+            <div id="recentList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECORDS -->
+      <section class="view-section" id="view-records">
+        <div class="chip-row">
+          <span class="chip active" data-quick="All">All Records</span>
+          <span class="chip" data-quick="AMC">AMC</span>
+          <span class="chip" data-quick="Sales Order">Sales Order</span>
+        </div>
+        <div class="filters-row">
+          <input type="text" class="field" id="searchInput" placeholder="Search MR no., material, vendor, LPO..." oninput="renderRecords()">
+          <select class="field" id="statusFilter" onchange="renderRecords()">
+            <option value="All">All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Partially Delivered">Partially Delivered</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <select class="field" id="sortSelect" onchange="renderRecords()">
+            <option value="recent">Recent first</option>
+            <option value="elapsed">Days elapsed ↓</option>
+            <option value="costHigh">Cost: High → Low</option>
+            <option value="costLow">Cost: Low → High</option>
+            <option value="mr">MR Number A–Z</option>
+          </select>
+          <button class="btn sm" onclick="resetFilters()">Reset</button>
+        </div>
+        <div class="records-card-grid" id="recordsCards"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view-section" id="view-settings">
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Cloud Sync Status</div>
+                <div class="card-subtitle">Supabase is built into this file. No project URL or key is required here.</div>
+              </div>
+              <div class="conn-badge" id="connBadge"><span class="dot"></span> <span id="connBadgeText">Offline</span></div>
+            </div>
+            <div style="display:grid;gap:12px;">
+              <div class="mini-card">
+                <div class="mini-card-label">Signed-in account</div>
+                <div class="mini-card-value" id="settingsSignedInEmail" style="font-size:16px;word-break:break-word;">—</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-card-label">Database table</div>
+                <div class="mini-card-value text-mono" style="font-size:16px;">mr_po_records</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+              <button class="btn danger" onclick="logoutSupabase()">Sign Out</button>
+            </div>
+            <div style="margin-top:12px;font-size:12.5px;color:var(--text-3)" id="supaStatusMsg">Supabase connection is already included in the HTML file.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Database SQL</div>
+            <div style="font-size:12.5px;color:var(--text-3);margin-bottom:12px;">Only use this if you are setting up a fresh Supabase table. Existing projects do not need this again.</div>
+            <button class="btn sm" onclick="copySupabaseSql()">Copy SQL</button>
+            <pre class="sql-block" id="supabaseSqlBlock"></pre>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title" style="margin-bottom:4px;">Backup</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-bottom:14px;">Export or import procurement records. Import will also sync to Supabase when signed in.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn success-btn" onclick="exportJson()">↓ Export JSON Backup</button>
+            <label class="btn" style="cursor:pointer;">↑ Import JSON <input type="file" accept=".json" hidden onchange="handleImport(event)"></label>
+            <button class="btn sm danger" onclick="clearLocalData()">⚠ Clear Local Cache</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Theme</div>
+              <div class="card-subtitle">Choose your preferred appearance</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" id="themeLight" onclick="setTheme('light')">☀️ Light</button>
+            <button class="btn" id="themeDark" onclick="setTheme('dark')">🌙 Dark</button>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- FAB (mobile) -->
+<button class="fab hidden" id="fabBtn" onclick="openModal()">+</button>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-backdrop" id="recordModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;" id="modalLabel">New Entry</div>
+        <div class="modal-title" id="modalTitle">Add MR / PO Record</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="recordForm">
         <input type="hidden" id="editId">
-
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div><label class="muted mb-2 block text-sm font-semibold">MR Created Date</label><input type="date" id="mrCreatedDate" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Project Line Manager Approved Date</label><input type="date" id="plmApprovedDate" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Senior Manager Approved Date</label><input type="date" id="smApprovedDate" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Date of MR Shared to Procurement</label><input type="date" id="sharedToProcurementDate" onchange="updateElapsedInForm()" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Days Elapsed After Submitting to Procurement</label><input type="number" id="daysElapsed" class="input-ui" readonly></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">MR Number</label><input required id="mrNumber" class="input-ui" placeholder="Enter MR number"></div>
+        <div class="form-grid cols-3" style="margin-bottom:16px;">
+          <div class="form-group"><label class="form-label">MR Created Date</label><input type="date" id="mrCreatedDate" class="field"></div>
+          <div class="form-group"><label class="form-label">PLM Approved Date</label><input type="date" id="plmApprovedDate" class="field"></div>
+          <div class="form-group"><label class="form-label">Senior Manager Approved Date</label><input type="date" id="smApprovedDate" class="field"></div>
+          <div class="form-group"><label class="form-label">Shared to Procurement Date</label><input type="date" id="sharedToProcurementDate" class="field" oninput="updateElapsed()"></div>
+          <div class="form-group"><label class="form-label">Days Elapsed (auto)</label><input type="number" id="daysElapsed" class="field" readonly style="opacity:0.7;cursor:default;"></div>
+          <div class="form-group"><label class="form-label">MR Number <span style="color:var(--red)">*</span></label><input id="mrNumber" class="field" placeholder="e.g. MR-2025-001" required></div>
         </div>
-
-        <div><label class="muted mb-2 block text-sm font-semibold">Material Details</label><textarea id="materialDetails" rows="3" class="input-ui min-h-[110px]" placeholder="Enter material details"></textarea></div>
-
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div><label class="muted mb-2 block text-sm font-semibold">MR Type</label><select id="mrType" onchange="toggleSONumberField()" class="input-ui"><option value="AMC">AMC</option><option value="Sales Order">Sales Order</option></select></div>
-          <div id="soFieldWrap"><label class="muted mb-2 block text-sm font-semibold">SO Number</label><input id="soNumber" class="input-ui" placeholder="Mandatory for Sales Order"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">FYNA MR No.</label><input id="fynaMrNo" class="input-ui" placeholder="Enter FYNA MR No."></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">LPO Issued Date</label><input type="date" id="lpoIssuedDate" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">LPO Number</label><input id="lpoNumber" class="input-ui" placeholder="Enter LPO number"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Supplier / Vendor Details</label><input id="vendorDetails" class="input-ui" placeholder="Enter supplier or vendor"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">LPO Cost</label><input type="number" step="0.01" id="lpoCost" class="input-ui" placeholder="0.00"></div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Material Details</label>
+          <textarea id="materialDetails" class="field" placeholder="Describe the materials or items..."></textarea>
         </div>
-
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div><label class="muted mb-2 block text-sm font-semibold">Material Delivery Status</label><select id="deliveryStatus" onchange="updateElapsedInForm()" class="input-ui"><option value="Pending">Pending</option><option value="Partially Delivered">Partially Delivered</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option></select></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Delivery Date</label><input type="date" id="deliveryDate" onchange="updateElapsedInForm()" class="input-ui"></div>
-          <div><label class="muted mb-2 block text-sm font-semibold">Additional Remarks</label><input id="remarks" class="input-ui" placeholder="Optional notes"></div>
+        <div class="form-grid cols-3" style="margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label">MR Type</label>
+            <select id="mrType" class="field" onchange="toggleSOField()">
+              <option value="AMC">AMC</option>
+              <option value="Sales Order">Sales Order</option>
+            </select>
+          </div>
+          <div class="form-group" id="soFieldWrap">
+            <label class="form-label">SO Number</label>
+            <input id="soNumber" class="field" placeholder="Required for Sales Order">
+          </div>
+          <div class="form-group">
+            <label class="form-label">FYNA MR No.</label>
+            <input id="fynaMrNo" class="field" placeholder="FYNA reference number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LPO Issued Date</label>
+            <input type="date" id="lpoIssuedDate" class="field">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LPO Number</label>
+            <input id="lpoNumber" class="field" placeholder="Enter LPO number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier / Vendor</label>
+            <input id="vendorDetails" class="field" placeholder="Vendor name or company">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LPO Cost (AED)</label>
+            <input type="number" step="0.01" id="lpoCost" class="field" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Delivery Status</label>
+            <select id="deliveryStatus" class="field" oninput="updateElapsed()">
+              <option value="Pending">Pending</option>
+              <option value="Partially Delivered">Partially Delivered</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Delivery Date</label>
+            <input type="date" id="deliveryDate" class="field" oninput="updateElapsed()">
+          </div>
         </div>
-
-        <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-transparent pt-4 pb-1 sm:flex-row sm:justify-end">
-          <button type="button" onclick="closeModal()" class="rounded-2xl soft-block border px-5 py-3 font-semibold text-[var(--text)]">Cancel</button>
-          <button id="saveRecordButton" type="submit" class="rounded-2xl action-gradient px-5 py-3 font-bold text-white shadow-[0_12px_28px_rgba(59,130,246,0.24)]">Save Record</button>
+        <div class="form-group">
+          <label class="form-label">Remarks</label>
+          <input id="remarks" class="field" placeholder="Optional notes or follow-up reminders">
         </div>
       </form>
     </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="saveBtn" onclick="saveRecord()">Save Record</button>
+    </div>
   </div>
+</div>
 
-  <div id="toast" class="fixed left-1/2 top-5 z-[90] hidden -translate-x-1/2">
-    <div class="panel rounded-2xl px-4 py-3 text-sm font-semibold" id="toastText"></div>
-  </div>
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✓</span>
+  <span id="toastText">Saved</span>
+</div>
 
-  <script>
-    const SUPABASE_URL = 'https://irfryahjlvgfmbjmpdje.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DuMmB81SkD-1fnXZKXnvyA_N_JcKgE8';
-    const TABLE_NAME = 'mr_po_records';
+<script>
+/* ─────────────────────────────────────────
+   STATE
+───────────────────────────────────────── */
+let records = [];
+let supabaseClient = null;
+let currentUser = null;
+let currentView = 'dashboard';
+let quickTypeFilter = 'All';
+const TABLE = 'mr_po_records';
+const SUPABASE_URL = 'https://irfryahjlvgfmbjmpdje.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DuMmB81SkD-1fnXZKXnvyA_N_JcKgE8';
 
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+/* ─────────────────────────────────────────
+   INIT
+───────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Theme
+  const saved = localStorage.getItem('pf_theme') || 'dark';
+  setTheme(saved, false);
+
+  // Nav
+  document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // Quick type chips
+  document.querySelectorAll('.chip[data-quick]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      quickTypeFilter = chip.dataset.quick;
+      document.querySelectorAll('.chip[data-quick]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderRecords();
+    });
+  });
+
+  // Theme toggles
+  document.getElementById('themeToggleBtn').addEventListener('click', () => {
+    const root = document.getElementById('appRoot');
+    setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+  });
+  document.getElementById('authThemeToggleBtn').addEventListener('click', () => {
+    const root = document.getElementById('appRoot');
+    setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+  });
+
+  // Auth form
+  document.getElementById('authForm').addEventListener('submit', e => {
+    e.preventDefault();
+    loginSupabase(true);
+  });
+
+  // Set SQL block
+  document.getElementById('supabaseSqlBlock').textContent = getSupabaseSQL();
+
+  // Load settings
+
+  // Load local data fallback only if cloud is unavailable
+  try { records = JSON.parse(localStorage.getItem('pf_records') || '[]'); } catch(e) { records = []; }
+
+  // Try auto-connect, but keep data hidden until the user is signed in
+  const { url, key } = getSupabaseConfig();
+  if (url && key) initSupabase(url, key);
+  else {
+    showAuthScreen('Enter your email and password to continue.');
+    renderAll();
+  }
+});
+
+/* ─────────────────────────────────────────
+   THEME
+───────────────────────────────────────── */
+function setTheme(t, save = true) {
+  const root = document.getElementById('appRoot');
+  if (root) root.dataset.theme = t;
+  const auth = document.getElementById('authScreen');
+  if (auth) auth.dataset.theme = t;
+  document.getElementById('themeToggleBtn').textContent = t === 'dark' ? '☀️' : '🌙';
+  const authToggle = document.getElementById('authThemeToggleBtn');
+  if (authToggle) authToggle.textContent = t === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+  if (save) localStorage.setItem('pf_theme', t);
+}
+
+/* ─────────────────────────────────────────
+   VIEW SWITCHING
+───────────────────────────────────────── */
+const viewMeta = {
+  dashboard: { title: 'Dashboard', sub: 'Procurement overview & analytics' },
+  records:   { title: 'MR / PO Records', sub: 'All procurement entries' },
+  settings:  { title: 'Settings', sub: 'Sync status, backup and theme' },
+};
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`view-${v}`).classList.add('active');
+  document.querySelectorAll('.nav-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  document.getElementById('topbarTitle').textContent = viewMeta[v]?.title || v;
+  document.getElementById('topbarSub').textContent = viewMeta[v]?.sub || '';
+  if (v === 'dashboard') renderDashboard();
+  if (v === 'records') renderRecords();
+}
+
+/* ─────────────────────────────────────────
+   AUTH SCREEN
+───────────────────────────────────────── */
+function showAuthScreen(message) {
+  document.getElementById('authScreen')?.classList.remove('hidden');
+  document.getElementById('appRoot')?.classList.add('hidden');
+  document.getElementById('fabBtn')?.classList.add('hidden');
+  closeModal();
+  if (message) setAuthStatus(message);
+}
+
+function showAppScreen() {
+  document.getElementById('authScreen')?.classList.add('hidden');
+  document.getElementById('appRoot')?.classList.remove('hidden');
+  document.getElementById('fabBtn')?.classList.remove('hidden');
+}
+
+function setAuthStatus(message) {
+  const el = document.getElementById('authStatusMsg');
+  if (el) el.textContent = message;
+}
+
+function getSupabaseConfig(preferAuth = false) {
+  return { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY };
+}
+
+function getLoginCredentials(preferAuth = false) {
+  const authEmail = document.getElementById('authEmail')?.value.trim() || '';
+  const authPassword = document.getElementById('authPassword')?.value.trim() || '';
+  const settingsEmail = document.getElementById('supaLoginEmail')?.value.trim() || '';
+  const settingsPassword = document.getElementById('supaLoginPassword')?.value.trim() || '';
+  return {
+    email: (preferAuth ? authEmail : settingsEmail) || authEmail || settingsEmail,
+    password: (preferAuth ? authPassword : settingsPassword) || authPassword || settingsPassword,
+  };
+}
+
+/* ─────────────────────────────────────────
+   SUPABASE
+───────────────────────────────────────── */
+function initSupabase(url, key) {
+  try {
+    supabaseClient = supabase.createClient(url, key, {
       auth: {
-        storage: {
-          getItem: (key) => sessionStorage.getItem(key),
-          setItem: (key, value) => sessionStorage.setItem(key, value),
-          removeItem: (key) => sessionStorage.removeItem(key)
-        }
+        storage: { getItem: k => sessionStorage.getItem(k), setItem: (k,v) => sessionStorage.setItem(k,v), removeItem: k => sessionStorage.removeItem(k) }
       }
     });
-
-    let records = [];
-    let currentPage = 'dashboard';
-    let darkMode = JSON.parse(localStorage.getItem('mr_po_tracker_dark_mode') || 'false');
-    let currentUser = null;
-
-    function applyTheme() {
-      document.body.classList.toggle('dark-mode', darkMode);
-      const themeText = darkMode ? 'Light' : 'Dark';
-      const btn = document.getElementById('themeToggle');
-      const authBtn = document.getElementById('authThemeToggle');
-      if (btn) btn.textContent = themeText;
-      if (authBtn) authBtn.textContent = themeText;
-      localStorage.setItem('mr_po_tracker_dark_mode', JSON.stringify(darkMode));
-    }
-
-    function toggleTheme() {
-      darkMode = !darkMode;
-      applyTheme();
-      renderApp();
-    }
-
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastText').textContent = message;
-      toast.classList.remove('hidden');
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toast.classList.add('hidden'), 2200);
-    }
-
-    function showAuthScreen() {
-      document.getElementById('authScreen').classList.remove('hidden');
-      document.getElementById('appShell').classList.add('hidden');
-      currentUser = null;
-    }
-
-    function showAppScreen(user) {
-      currentUser = user;
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appShell').classList.remove('hidden');
-      document.getElementById('userEmailDisplay').textContent = user?.email || '';
-      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', { dateStyle: 'medium' });
-    }
-
-    function switchPage(page) {
-      currentPage = page;
-      document.getElementById('dashboardPage').classList.toggle('hidden', page !== 'dashboard');
-      document.getElementById('listPage').classList.toggle('hidden', page !== 'list');
-      document.getElementById('tabDashboard').classList.toggle('active', page === 'dashboard');
-      document.getElementById('tabList').classList.toggle('active', page === 'list');
-    }
-
-    function formatDate(value) {
-      if (!value) return 'NA';
-      const d = new Date(value);
-      if (isNaN(d.getTime())) return 'NA';
-      return d.toLocaleDateString('en-GB');
-    }
-
-    function calculateDaysElapsed(sharedDate, deliveryDate, deliveryStatus) {
-      if (!sharedDate) return '';
-      const start = new Date(sharedDate);
-      if (isNaN(start.getTime())) return '';
-      let endDate = new Date();
-      const shouldUseDeliveryDate = deliveryDate && (deliveryStatus === 'Delivered' || deliveryStatus === 'Partially Delivered');
-      if (shouldUseDeliveryDate) {
-        const delivered = new Date(deliveryDate);
-        if (!isNaN(delivered.getTime())) endDate = delivered;
-      }
-      start.setHours(0,0,0,0);
-      endDate.setHours(0,0,0,0);
-      return Math.max(0, Math.floor((endDate - start) / (1000 * 60 * 60 * 24)));
-    }
-
-    function updateElapsedInForm() {
-      const sharedDate = document.getElementById('sharedToProcurementDate').value;
-      const deliveryDate = document.getElementById('deliveryDate').value;
-      const deliveryStatus = document.getElementById('deliveryStatus').value;
-      document.getElementById('daysElapsed').value = calculateDaysElapsed(sharedDate, deliveryDate, deliveryStatus);
-    }
-
-    function toggleSONumberField() {
-      const type = document.getElementById('mrType').value;
-      const so = document.getElementById('soNumber');
-      if (type === 'Sales Order') {
-        so.required = true;
+    supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        currentUser = session.user;
+        setConnected(true);
+        showAppScreen();
+        await loadFromSupabase();
       } else {
-        so.required = false;
-        so.value = '';
-      }
-    }
-
-    function getStatusTone(status) {
-      if (status === 'Delivered') return 'background:#dcfce7;color:#166534;border-color:#bbf7d0';
-      if (status === 'Partially Delivered') return 'background:#fff7ed;color:#c2410c;border-color:#fed7aa';
-      if (status === 'Cancelled') return 'background:#fee2e2;color:#b91c1c;border-color:#fecaca';
-      return 'background:#e0f2fe;color:#0369a1;border-color:#bae6fd';
-    }
-
-    function getTypeTone(type) {
-      return type === 'Sales Order'
-        ? 'background:#ede9fe;color:#6d28d9;border-color:#ddd6fe'
-        : 'background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe';
-    }
-
-    function currencyFormat(value) {
-      const num = Number(value || 0);
-      return num ? num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
-    }
-
-    function renderStat(title, value, accentBg, accentText) {
-      return `
-        <div class="panel rounded-[24px] p-5">
-          <div class="mb-4 flex items-center justify-between">
-            <div class="rounded-2xl px-3 py-2 text-sm font-bold" style="background:${accentBg};color:${accentText}">●</div>
-            <span class="muted text-[11px] font-semibold uppercase tracking-[0.18em]">Live</span>
-          </div>
-          <div class="display-font text-3xl font-bold" style="color:${accentText}">${value}</div>
-          <div class="muted mt-1 text-sm">${title}</div>
-        </div>
-      `;
-    }
-
-    function renderDashboard(stats) {
-      document.getElementById('statsGrid').innerHTML = `
-        ${renderStat('Total Records', stats.total, '#eff6ff', '#1d4ed8')}
-        ${renderStat('Pending Delivery', stats.pending, '#fef3c7', '#b45309')}
-        ${renderStat('Partially Delivered', stats.partial, '#fff7ed', '#c2410c')}
-        ${renderStat('Delivered', stats.delivered, '#dcfce7', '#166534')}
-        ${renderStat('Total LPO Cost', currencyFormat(stats.value), '#e0f2fe', '#0369a1')}
-      `;
-
-      document.getElementById('overviewCards').innerHTML = `
-        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">AMC Records</div><div class="display-font mt-2 text-2xl font-bold">${stats.amc}</div></div>
-        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Sales Order Records</div><div class="display-font mt-2 text-2xl font-bold">${stats.salesOrder}</div></div>
-        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Average Days Elapsed</div><div class="display-font mt-2 text-2xl font-bold">${stats.avgElapsed}</div></div>
-        <div class="soft-block rounded-[22px] border p-4"><div class="muted text-[11px] font-bold uppercase tracking-[0.18em]">Highest LPO Cost</div><div class="display-font mt-2 text-2xl font-bold">AED ${currencyFormat(stats.maxCost)}</div></div>
-      `;
-
-      const latest = [...records]
-        .sort((a, b) => new Date(b.mrCreatedDate || 0) - new Date(a.mrCreatedDate || 0))
-        .slice(0, 5);
-
-      document.getElementById('recentList').innerHTML = latest.length ? latest.map(r => `
-        <div class="soft-block rounded-[20px] border p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="display-font text-lg font-bold">${r.mrNumber || 'NA'}</div>
-              <div class="muted mt-1 text-sm">${r.materialDetails || 'No material details'}</div>
-            </div>
-            <span class="chip" style="${getStatusTone(r.deliveryStatus)}">${r.deliveryStatus}</span>
-          </div>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="chip" style="${getTypeTone(r.mrType)}">${r.mrType}</span>
-            <span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">AED ${currencyFormat(r.lpoCost)}</span>
-          </div>
-        </div>
-      `).join('') : `<div class="rounded-[20px] bg-slate-50 p-5 text-sm muted">No recent records available.</div>`;
-    }
-
-    function renderList(filtered, typeFilter) {
-      const grid = document.getElementById('itemsGrid');
-      if (!filtered.length) {
-        grid.innerHTML = `
-          <div class="panel col-span-full rounded-[28px] p-12 text-center">
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-2xl">🔎</div>
-            <div class="display-font text-2xl font-bold">No records found</div>
-            <p class="muted mt-2 text-sm">Try a different search or add a new MR / PO entry.</p>
-          </div>
-        `;
-        updateQuickButtons(typeFilter);
-        return;
-      }
-
-      grid.innerHTML = filtered.map(r => `
-        <article class="panel fade-up rounded-[28px] overflow-hidden">
-          <div class="soft-block border-b px-5 py-4">
-            <div class="flex items-start justify-between gap-3 flex-wrap">
-              <div class="min-w-0">
-                <div class="muted mb-1 text-[11px] font-bold uppercase tracking-[0.18em]">MR Number</div>
-                <div class="display-font text-xl font-bold break-words">${r.mrNumber || 'NA'}</div>
-              </div>
-              <div class="flex gap-2 shrink-0">
-                <button onclick="editRecord('${r.id}')" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200">Edit</button>
-                <button onclick="deleteRecord('${r.id}')" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700 ring-1 ring-slate-200">Delete</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-5">
-            <div class="mb-4 flex flex-wrap gap-2">
-              <span class="chip" style="${getTypeTone(r.mrType)}">${r.mrType}</span>
-              <span class="chip" style="${getStatusTone(r.deliveryStatus)}">${r.deliveryStatus}</span>
-              ${r.soNumber ? `<span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">SO ${r.soNumber}</span>` : ''}
-              ${r.fynaMrNo ? `<span class="chip" style="background:#f8fafc;color:#334155;border-color:#e2e8f0">FYNA ${r.fynaMrNo}</span>` : ''}
-            </div>
-
-            <div class="soft-block mb-4 rounded-[22px] border p-4">
-              <div class="muted mb-2 text-[11px] font-bold uppercase tracking-[0.18em]">Material Details</div>
-              <div class="text-sm leading-6 break-words">${r.materialDetails || 'No material details'}</div>
-            </div>
-
-            <div class="grid gap-3 xl:grid-cols-2">
-              <div class="soft-block rounded-[20px] border p-4">
-                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Timeline</div>
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between gap-3"><span class="muted">MR Created</span><span>${formatDate(r.mrCreatedDate)}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">Shared to Procurement</span><span>${formatDate(r.sharedToProcurementDate)}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">Delivery Date</span><span>${formatDate(r.deliveryDate)}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">Days Elapsed</span><span class="font-semibold">${r.daysElapsed || 0}</span></div>
-                </div>
-              </div>
-              <div class="soft-block rounded-[20px] border p-4">
-                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Approvals</div>
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between gap-3"><span class="muted">PLM</span><span class="text-right">${formatDate(r.plmApprovedDate)}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">Senior Manager</span><span class="text-right">${formatDate(r.smApprovedDate)}</span></div>
-                </div>
-              </div>
-              <div class="soft-block rounded-[20px] border p-4">
-                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">LPO</div>
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between gap-3"><span class="muted">Issued Date</span><span class="text-right">${formatDate(r.lpoIssuedDate)}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">LPO Number</span><span class="text-right break-all">${r.lpoNumber || 'NA'}</span></div>
-                  <div class="flex justify-between gap-3"><span class="muted">LPO Cost</span><span class="text-right">AED ${currencyFormat(r.lpoCost)}</span></div>
-                </div>
-              </div>
-              <div class="soft-block rounded-[20px] border p-4">
-                <div class="muted mb-3 text-[11px] font-bold uppercase tracking-[0.18em]">Supplier</div>
-                <div class="text-sm break-words">${r.vendorDetails || 'NA'}</div>
-              </div>
-            </div>
-
-            ${r.remarks ? `<div class="soft-block mt-4 rounded-[20px] border p-4"><div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">Remarks</div><p class="text-sm">${r.remarks}</p></div>` : ''}
-          </div>
-        </article>
-      `).join('');
-
-      updateQuickButtons(typeFilter);
-    }
-
-    function renderApp() {
-      const searchEl = document.getElementById('searchInput');
-      const typeEl = document.getElementById('typeFilter');
-      const statusEl = document.getElementById('statusFilter');
-      const sortEl = document.getElementById('sortSelect');
-
-      const search = searchEl ? searchEl.value.toLowerCase() : '';
-      const typeFilter = typeEl ? typeEl.value : 'All';
-      const statusFilter = statusEl ? statusEl.value : 'All';
-      const sortBy = sortEl ? sortEl.value : 'recent';
-
-      let filtered = [...records].filter(r => {
-        const text = [r.mrNumber, r.materialDetails, r.vendorDetails, r.lpoNumber, r.soNumber].join(' ').toLowerCase();
-        const matchesSearch = !search || text.includes(search);
-        const matchesType = typeFilter === 'All' || r.mrType === typeFilter;
-        const matchesStatus = statusFilter === 'All' || r.deliveryStatus === statusFilter;
-        return matchesSearch && matchesType && matchesStatus;
-      });
-
-      filtered.sort((a, b) => {
-        if (sortBy === 'elapsed') return Number(b.daysElapsed || 0) - Number(a.daysElapsed || 0);
-        if (sortBy === 'costHigh') return Number(b.lpoCost || 0) - Number(a.lpoCost || 0);
-        if (sortBy === 'costLow') return Number(a.lpoCost || 0) - Number(b.lpoCost || 0);
-        if (sortBy === 'mr') return (a.mrNumber || '').localeCompare(b.mrNumber || '');
-        return new Date(b.mrCreatedDate || 0) - new Date(a.mrCreatedDate || 0);
-      });
-
-      const elapsedVals = records.map(r => Number(r.daysElapsed || 0)).filter(v => !isNaN(v));
-      const stats = {
-        total: records.length,
-        pending: records.filter(r => r.deliveryStatus === 'Pending').length,
-        partial: records.filter(r => r.deliveryStatus === 'Partially Delivered').length,
-        delivered: records.filter(r => r.deliveryStatus === 'Delivered').length,
-        value: records.reduce((sum, r) => sum + Number(r.lpoCost || 0), 0),
-        amc: records.filter(r => r.mrType === 'AMC').length,
-        salesOrder: records.filter(r => r.mrType === 'Sales Order').length,
-        avgElapsed: elapsedVals.length ? Math.round(elapsedVals.reduce((a,b) => a+b, 0) / elapsedVals.length) : 0,
-        maxCost: records.reduce((max, r) => Math.max(max, Number(r.lpoCost || 0)), 0)
-      };
-
-      renderDashboard(stats);
-      renderList(filtered, typeFilter);
-      applyTheme();
-      switchPage(currentPage);
-    }
-
-    function updateQuickButtons(typeFilter) {
-      const base = 'soft-block rounded-2xl border px-4 py-4 text-left';
-      ['quickAll','quickAMC','quickSO'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.className = base;
-      });
-      if (typeFilter === 'All') document.getElementById('quickAll').className = base + ' ring-2 ring-blue-200 soft-block';
-      if (typeFilter === 'AMC') document.getElementById('quickAMC').className = base + ' ring-2 ring-blue-200 soft-block';
-      if (typeFilter === 'Sales Order') document.getElementById('quickSO').className = base + ' ring-2 ring-violet-200 bg-violet-50';
-    }
-
-    function quickType(type) {
-      const typeEl = document.getElementById('typeFilter');
-      if (typeEl) typeEl.value = type;
-      currentPage = 'list';
-      renderApp();
-    }
-
-    function resetFilters() {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('typeFilter').value = 'All';
-      document.getElementById('statusFilter').value = 'All';
-      document.getElementById('sortSelect').value = 'recent';
-      renderApp();
-    }
-
-    function openModal() {
-      document.getElementById('trackerForm').reset();
-      document.getElementById('editId').value = '';
-      document.getElementById('modalLabel').textContent = 'New entry';
-      document.getElementById('modalTitle').textContent = 'Create MR / PO record';
-      document.getElementById('daysElapsed').value = '';
-      document.getElementById('deliveryDate').value = '';
-      document.getElementById('mrType').value = 'AMC';
-      toggleSONumberField();
-      document.getElementById('saveRecordButton').disabled = false;
-      document.getElementById('saveRecordButton').textContent = 'Save Record';
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('modal').classList.add('flex');
-    }
-
-    function closeModal() {
-      document.getElementById('trackerForm').reset();
-      document.getElementById('editId').value = '';
-      document.getElementById('daysElapsed').value = '';
-      document.getElementById('mrType').value = 'AMC';
-      document.getElementById('fynaMrNo').value = '';
-      toggleSONumberField();
-      document.getElementById('saveRecordButton').disabled = false;
-      document.getElementById('saveRecordButton').textContent = 'Save Record';
-      document.getElementById('modal').classList.add('hidden');
-      document.getElementById('modal').classList.remove('flex');
-    }
-    function editRecord(id) {
-      const r = records.find(x => x.id === id);
-      if (!r) return;
-      document.getElementById('editId').value = r.id;
-      document.getElementById('mrCreatedDate').value = r.mrCreatedDate || '';
-      document.getElementById('plmApprovedDate').value = r.plmApprovedDate || '';
-      document.getElementById('smApprovedDate').value = r.smApprovedDate || '';
-      document.getElementById('sharedToProcurementDate').value = r.sharedToProcurementDate || '';
-      document.getElementById('daysElapsed').value = r.daysElapsed || '';
-      document.getElementById('mrNumber').value = r.mrNumber || '';
-      document.getElementById('materialDetails').value = r.materialDetails || '';
-      document.getElementById('mrType').value = r.mrType || 'AMC';
-      document.getElementById('soNumber').value = r.soNumber || '';
-      document.getElementById('fynaMrNo').value = r.fynaMrNo || '';
-      document.getElementById('lpoIssuedDate').value = r.lpoIssuedDate || '';
-      document.getElementById('lpoNumber').value = r.lpoNumber || '';
-      document.getElementById('vendorDetails').value = r.vendorDetails || '';
-      document.getElementById('lpoCost').value = r.lpoCost || '';
-      document.getElementById('deliveryStatus').value = r.deliveryStatus || 'Pending';
-      document.getElementById('deliveryDate').value = r.deliveryDate || '';
-      document.getElementById('remarks').value = r.remarks || '';
-      document.getElementById('modalLabel').textContent = 'Edit entry';
-      document.getElementById('modalTitle').textContent = 'Update MR / PO record';
-      document.getElementById('saveRecordButton').disabled = false;
-      document.getElementById('saveRecordButton').textContent = 'Save Record';
-      toggleSONumberField();
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('modal').classList.add('flex');
-    }
-
-    function mapRowToRecord(row) {
-      return {
-        id: String(row.id),
-        mrCreatedDate: row.mr_created_date,
-        plmApprovedDate: row.plm_approved_date,
-        smApprovedDate: row.sm_approved_date,
-        sharedToProcurementDate: row.shared_to_procurement_date,
-        daysElapsed: row.days_elapsed,
-        mrNumber: row.mr_number,
-        materialDetails: row.material_details,
-        mrType: row.mr_type,
-        soNumber: row.so_number,
-        fynaMrNo: row.fyna_mr_no,
-        lpoIssuedDate: row.lpo_issued_date,
-        lpoNumber: row.lpo_number,
-        vendorDetails: row.vendor_details,
-        lpoCost: row.lpo_cost,
-        deliveryStatus: row.delivery_status,
-        deliveryDate: row.delivery_date,
-        remarks: row.remarks
-      };
-    }
-
-    async function loadRecordsFromSupabase() {
-      const { data, error } = await supabaseClient
-        .from(TABLE_NAME)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error(error);
-        showToast(error.message || 'Failed to load records');
-        return;
-      }
-
-      records = (data || []).map(mapRowToRecord);
-      renderApp();
-    }
-
-    async function deleteRecord(id) {
-      if (!confirm('Delete this record?')) return;
-    
-      try {
-        const { data, error } = await supabaseClient
-          .from(TABLE_NAME)
-          .delete()
-          .eq('id', Number(id))
-          .select();
-    
-        if (error) {
-          console.error('Delete error:', error);
-          showToast(error.message || 'Delete failed');
-          return;
-        }
-    
-        if (!data || data.length === 0) {
-          console.warn('Delete returned no rows');
-          showToast('Delete not allowed or record not found');
-          return;
-        }
-    
-        showToast('Record deleted');
-        await loadRecordsFromSupabase();
-      } catch (err) {
-        console.error('Delete exception:', err);
-        showToast('Delete failed');
-      }
-    }
-    async function handleLogin(event) {
-      event.preventDefault();
-
-      const button = document.getElementById('loginButton');
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-
-      button.disabled = true;
-      button.textContent = 'Signing In...';
-
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      button.disabled = false;
-      button.textContent = 'Sign In';
-
-      if (error) {
-        console.error(error);
-        showToast(error.message || 'Login failed');
-        return;
-      }
-
-      document.getElementById('loginForm').reset();
-      showToast('Login successful');
-    }
-
-    async function handleLogout() {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        console.error(error);
-        showToast(error.message || 'Failed to sign out');
-        return;
-      }
-      records = [];
-      renderApp();
-      showAuthScreen();
-      showToast('Signed out');
-    }
-
-    document.getElementById('trackerForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const saveBtn = document.getElementById('saveRecordButton');
-      const form = document.getElementById('trackerForm');
-      const mrType = document.getElementById('mrType').value;
-      const soNumber = document.getElementById('soNumber').value.trim();
-
-      if (mrType === 'Sales Order' && !soNumber) {
-        showToast('SO Number is mandatory for Sales Order');
-        return;
-      }
-
-      const payload = {
-        mr_created_date: document.getElementById('mrCreatedDate').value || null,
-        plm_approved_date: document.getElementById('plmApprovedDate').value || null,
-        sm_approved_date: document.getElementById('smApprovedDate').value || null,
-        shared_to_procurement_date: document.getElementById('sharedToProcurementDate').value || null,
-        days_elapsed: Number(calculateDaysElapsed(
-          document.getElementById('sharedToProcurementDate').value,
-          document.getElementById('deliveryDate').value,
-          document.getElementById('deliveryStatus').value
-        ) || 0),
-        mr_number: document.getElementById('mrNumber').value.trim(),
-        material_details: document.getElementById('materialDetails').value.trim(),
-        mr_type: mrType,
-        so_number: mrType === 'Sales Order' ? soNumber : '',
-        fyna_mr_no: document.getElementById('fynaMrNo').value.trim(),
-        lpo_issued_date: document.getElementById('lpoIssuedDate').value || null,
-        lpo_number: document.getElementById('lpoNumber').value.trim(),
-        vendor_details: document.getElementById('vendorDetails').value.trim(),
-        lpo_cost: Number(document.getElementById('lpoCost').value || 0),
-        delivery_status: document.getElementById('deliveryStatus').value,
-        delivery_date: document.getElementById('deliveryDate').value || null,
-        remarks: document.getElementById('remarks').value.trim()
-      };
-
-      if (!payload.mr_number) {
-        showToast('MR Number is required');
-        return;
-      }
-
-      const id = document.getElementById('editId').value;
-
-      try {
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
-
-        if (id) {
-          const { data, error } = await supabaseClient
-            .from(TABLE_NAME)
-            .update(payload)
-            .eq('id', Number(id))
-            .select();
-
-          if (error) throw error;
-          if (!data || data.length === 0) {
-            throw new Error('Update did not return any row');
-          }
-
-          showToast('Record updated');
-        } else {
-          const { data, error } = await supabaseClient
-            .from(TABLE_NAME)
-            .insert([payload])
-            .select();
-
-          if (error) throw error;
-          if (!data || data.length === 0) {
-            throw new Error('Insert did not return any row');
-          }
-
-          showToast('Record added');
-        }
-
-        await loadRecordsFromSupabase();
-
-        form.reset();
-        document.getElementById('editId').value = '';
-        document.getElementById('daysElapsed').value = '';
-        document.getElementById('mrType').value = 'AMC';
-        toggleSONumberField();
-
-        closeModal();
-      } catch (err) {
-        console.error('Save error:', err);
-        showToast(err.message || 'Record save failed');
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Record';
+        currentUser = null;
+        setConnected(false);
+        showAuthScreen('Sign in to load your procurement records.');
+        renderAll();
       }
     });
-
-    function exportData() {
-      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `MR_PO_Tracker_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('JSON exported');
-    }
-
-    function exportExcel() {
-      const rows = records.map(r => ({
-        'MR Created Date': formatDate(r.mrCreatedDate),
-        'Project Line Manager Approved Date': formatDate(r.plmApprovedDate),
-        'Senior Manager Approved Date': formatDate(r.smApprovedDate),
-        'Date of MR Shared to Procurement': formatDate(r.sharedToProcurementDate),
-        'Days Elapsed After Submitting to Procurement': r.daysElapsed || 0,
-        'MR Number': r.mrNumber || '',
-        'Material Details': r.materialDetails || '',
-        'MR Type': r.mrType || '',
-        'SO Number': r.soNumber || '',
-        'FYNA MR No.': r.fynaMrNo || '',
-        'LPO Issued Date': formatDate(r.lpoIssuedDate),
-        'LPO Number': r.lpoNumber || '',
-        'Supplier / Vendor Details': r.vendorDetails || '',
-        'LPO Cost': Number(r.lpoCost || 0),
-        'Material Delivery Status': r.deliveryStatus || '',
-        'Delivery Date': formatDate(r.deliveryDate),
-        'Remarks': r.remarks || ''
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'MR_PO_Tracker');
-
-      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-      const colWidths = [];
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        let maxLen = 12;
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = worksheet[cellAddress];
-          if (cell && cell.v != null) {
-            maxLen = Math.max(maxLen, String(cell.v).length);
-          }
-        }
-        colWidths.push({ wch: Math.min(maxLen + 2, 40) });
+    supabaseClient.auth.onAuthStateChange(async (_e, session) => {
+      if (session?.user) {
+        currentUser = session.user;
+        setConnected(true);
+        showAppScreen();
+        await loadFromSupabase();
+      } else {
+        currentUser = null;
+        setConnected(false);
+        records = [];
+        renderAll();
+        showAuthScreen('Signed out. Sign in again to view records.');
       }
-      worksheet['!cols'] = colWidths;
-
-      XLSX.writeFile(workbook, `MR_PO_Tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
-      showToast('Excel downloaded');
-    }
-
-    async function handleImport(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      if (!confirm('This will replace all current online records with the JSON file data. Continue?')) {
-        event.target.value = '';
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (!Array.isArray(imported)) throw new Error('Invalid JSON');
-
-          const rows = imported.map(item => ({
-            mr_created_date: item.mrCreatedDate || null,
-            plm_approved_date: item.plmApprovedDate || null,
-            sm_approved_date: item.smApprovedDate || null,
-            shared_to_procurement_date: item.sharedToProcurementDate || null,
-            days_elapsed: Number(item.daysElapsed || 0),
-            mr_number: (item.mrNumber || '').trim(),
-            material_details: item.materialDetails || '',
-            mr_type: item.mrType || 'AMC',
-            so_number: item.soNumber || '',
-            fyna_mr_no: item.fynaMrNo || '',
-            lpo_issued_date: item.lpoIssuedDate || null,
-            lpo_number: item.lpoNumber || '',
-            vendor_details: item.vendorDetails || '',
-            lpo_cost: Number(item.lpoCost || 0),
-            delivery_status: item.deliveryStatus || 'Pending',
-            delivery_date: item.deliveryDate || null,
-            remarks: item.remarks || ''
-          }));
-
-          const { error: deleteError } = await supabaseClient
-            .from(TABLE_NAME)
-            .delete()
-            .neq('id', 0);
-
-          if (deleteError) {
-            console.error(deleteError);
-            showToast(deleteError.message || 'Failed to clear old records');
-            return;
-          }
-
-          if (rows.length) {
-            const { error: insertError } = await supabaseClient
-              .from(TABLE_NAME)
-              .insert(rows);
-
-            if (insertError) {
-              console.error(insertError);
-              showToast(insertError.message || 'Import failed');
-              return;
-            }
-          }
-
-          showToast('JSON imported');
-          await loadRecordsFromSupabase();
-        } catch (err) {
-          console.error(err);
-          showToast(err.message || 'Invalid JSON file');
-        }
-      };
-
-      reader.readAsText(file);
-      event.target.value = '';
-    }
-
-    async function handleSessionChange(session) {
-      if (!session?.user) {
-        showAuthScreen();
-        return;
-      }
-      showAppScreen(session.user);
-      await loadRecordsFromSupabase();
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      applyTheme();
-      toggleSONumberField();
-
-      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-      document.getElementById('authThemeToggle').addEventListener('click', toggleTheme);
-      document.getElementById('loginForm').addEventListener('submit', handleLogin);
-      document.getElementById('logoutButton').addEventListener('click', handleLogout);
-
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      await handleSessionChange(session);
-
-      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-        await handleSessionChange(session);
-      });
     });
-  </script>
+  } catch(e) {
+    showAuthScreen('Supabase init error: ' + e.message);
+    showToast('Supabase init error: ' + e.message, 'error');
+  }
+}
+
+function setConnected(v) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  const badge = document.getElementById('connBadge');
+  const badgeText = document.getElementById('connBadgeText');
+  if (dot) dot.className = 'sync-dot' + (v ? ' connected' : '');
+  if (lbl) lbl.textContent = v ? 'Connected' : 'Not connected';
+  if (badge) badge.className = 'conn-badge' + (v ? ' live' : '');
+  if (badgeText) badgeText.textContent = v ? 'Live' : 'Offline';
+  const email = currentUser?.email || '';
+  const sidebarEmail = document.getElementById('userEmailSidebar');
+  if (sidebarEmail) sidebarEmail.textContent = email;
+  const settingsEmail = document.getElementById('settingsSignedInEmail');
+  if (settingsEmail) settingsEmail.textContent = email || '—';
+  const status = document.getElementById('supaStatusMsg');
+  if (status) status.textContent = v ? `✓ Signed in as ${email}` : 'Not signed in.';
+  if (v) setAuthStatus(`Signed in as ${email}`);
+}
+
+async function loadFromSupabase() {
+  if (!supabaseClient || !currentUser) return;
+  try {
+    const { data, error } = await supabaseClient.from(TABLE).select('*').order('id', { ascending: false });
+    if (error) throw error;
+    records = (data || []).map(mapFromDB);
+    localStorage.setItem('pf_records', JSON.stringify(records));
+    renderAll();
+    showToast(`Loaded ${records.length} records`, 'success');
+  } catch(e) {
+    showToast('Load error: ' + e.message, 'error');
+    renderAll();
+  }
+}
+
+function saveSupabaseSettings(preferAuth = false) {
+  const { url, key } = getSupabaseConfig(preferAuth);
+  if (!url || !key) { showToast('Enter URL and key', 'error'); setAuthStatus('Enter the Supabase URL and anon key first.'); return; }
+  initSupabase(url, key);
+  showToast('Connection is already included.');
+  setAuthStatus('Enter your email and password to sign in.');
+}
+
+async function loginSupabase(preferAuth = false) {
+  const { url, key } = getSupabaseConfig(preferAuth);
+  const { email, password } = getLoginCredentials(preferAuth);
+  if (!url || !key) { showToast('Supabase connection is missing', 'error'); setAuthStatus('Supabase connection is missing in the HTML file.'); return; }
+  if (!email || !password) { showToast('Enter email and password', 'error'); setAuthStatus('Enter your email and password.'); return; }
+  if (!supabaseClient) initSupabase(url, key);
+
+  const btn = preferAuth ? document.getElementById('authSignInBtn') : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  setAuthStatus('Signing in…');
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+  if (error) { showToast(error.message, 'error'); setAuthStatus(error.message); return; }
+  currentUser = data.user;
+  setConnected(true);
+  showAppScreen();
+  await loadFromSupabase();
+  showToast('Signed in as ' + email);
+}
+
+async function signupSupabase(preferAuth = false) {
+  const { url, key } = getSupabaseConfig(preferAuth);
+  const { email, password } = getLoginCredentials(preferAuth);
+  if (!url || !key) { showToast('Supabase connection is missing', 'error'); setAuthStatus('Supabase connection is missing in the HTML file.'); return; }
+  if (!email || !password) { showToast('Enter email and password', 'error'); setAuthStatus('Enter an email and password to create an account.'); return; }
+  if (!supabaseClient) initSupabase(url, key);
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) { showToast(error.message, 'error'); setAuthStatus(error.message); }
+  else { showToast('Account created! Check your email.'); setAuthStatus('Account created. If email confirmation is enabled, confirm your email before signing in.'); }
+}
+
+async function logoutSupabase() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  currentUser = null;
+  records = [];
+  setConnected(false);
+  renderAll();
+  showAuthScreen('Signed out. Sign in again to view records.');
+  showToast('Signed out');
+}
+
+/* ─────────────────────────────────────────
+   DATA HELPERS
+───────────────────────────────────────── */
+function mapFromDB(r) {
+  return {
+    id: r.id,
+    mrCreatedDate: r.mr_created_date,
+    plmApprovedDate: r.plm_approved_date,
+    smApprovedDate: r.sm_approved_date,
+    sharedToProcurementDate: r.shared_to_procurement_date,
+    daysElapsed: r.days_elapsed || 0,
+    mrNumber: r.mr_number || '',
+    materialDetails: r.material_details || '',
+    mrType: r.mr_type || 'AMC',
+    soNumber: r.so_number || '',
+    fynaMrNo: r.fyna_mr_no || '',
+    lpoIssuedDate: r.lpo_issued_date,
+    lpoNumber: r.lpo_number || '',
+    vendorDetails: r.vendor_details || '',
+    lpoCost: Number(r.lpo_cost || 0),
+    deliveryStatus: r.delivery_status || 'Pending',
+    deliveryDate: r.delivery_date,
+    remarks: r.remarks || '',
+  };
+}
+function mapToDB(r) {
+  return {
+    mr_created_date: r.mrCreatedDate || null,
+    plm_approved_date: r.plmApprovedDate || null,
+    sm_approved_date: r.smApprovedDate || null,
+    shared_to_procurement_date: r.sharedToProcurementDate || null,
+    days_elapsed: Number(r.daysElapsed || 0),
+    mr_number: r.mrNumber || '',
+    material_details: r.materialDetails || '',
+    mr_type: r.mrType || 'AMC',
+    so_number: r.soNumber || '',
+    fyna_mr_no: r.fynaMrNo || '',
+    lpo_issued_date: r.lpoIssuedDate || null,
+    lpo_number: r.lpoNumber || '',
+    vendor_details: r.vendorDetails || '',
+    lpo_cost: Number(r.lpoCost || 0),
+    delivery_status: r.deliveryStatus || 'Pending',
+    delivery_date: r.deliveryDate || null,
+    remarks: r.remarks || '',
+  };
+}
+
+function calcElapsed(sharedDate, deliveryDate, deliveryStatus) {
+  if (!sharedDate) return '';
+  const start = new Date(sharedDate); if (isNaN(start)) return '';
+  const useDelivery = deliveryDate && (deliveryStatus === 'Delivered' || deliveryStatus === 'Partially Delivered');
+  let end = useDelivery ? new Date(deliveryDate) : new Date();
+  if (isNaN(end)) end = new Date();
+  start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+  return Math.max(0, Math.floor((end - start) / 86400000));
+}
+
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v); if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+function fmtCost(v) {
+  const n = Number(v || 0);
+  return 'AED ' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* ─────────────────────────────────────────
+   FORM HELPERS
+───────────────────────────────────────── */
+function updateElapsed() {
+  const s = document.getElementById('sharedToProcurementDate').value;
+  const d = document.getElementById('deliveryDate').value;
+  const st = document.getElementById('deliveryStatus').value;
+  const el = calcElapsed(s, d, st);
+  document.getElementById('daysElapsed').value = el === '' ? '' : el;
+}
+
+function toggleSOField() {
+  const t = document.getElementById('mrType').value;
+  document.getElementById('soFieldWrap').style.display = t === 'Sales Order' ? '' : '';
+  document.getElementById('soNumber').required = t === 'Sales Order';
+  if (t !== 'Sales Order') document.getElementById('soNumber').value = '';
+}
+
+/* ─────────────────────────────────────────
+   MODAL
+───────────────────────────────────────── */
+function openModal(rec) {
+  const form = document.getElementById('recordForm');
+  form.reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('daysElapsed').value = '';
+  document.getElementById('mrType').value = 'AMC';
+  toggleSOField();
+
+  if (rec) {
+    document.getElementById('modalLabel').textContent = 'Editing record';
+    document.getElementById('modalTitle').textContent = 'Edit MR / PO Record';
+    document.getElementById('editId').value = rec.id;
+    document.getElementById('mrCreatedDate').value = rec.mrCreatedDate || '';
+    document.getElementById('plmApprovedDate').value = rec.plmApprovedDate || '';
+    document.getElementById('smApprovedDate').value = rec.smApprovedDate || '';
+    document.getElementById('sharedToProcurementDate').value = rec.sharedToProcurementDate || '';
+    document.getElementById('daysElapsed').value = rec.daysElapsed || '';
+    document.getElementById('mrNumber').value = rec.mrNumber || '';
+    document.getElementById('materialDetails').value = rec.materialDetails || '';
+    document.getElementById('mrType').value = rec.mrType || 'AMC';
+    document.getElementById('soNumber').value = rec.soNumber || '';
+    document.getElementById('fynaMrNo').value = rec.fynaMrNo || '';
+    document.getElementById('lpoIssuedDate').value = rec.lpoIssuedDate || '';
+    document.getElementById('lpoNumber').value = rec.lpoNumber || '';
+    document.getElementById('vendorDetails').value = rec.vendorDetails || '';
+    document.getElementById('lpoCost').value = rec.lpoCost || '';
+    document.getElementById('deliveryStatus').value = rec.deliveryStatus || 'Pending';
+    document.getElementById('deliveryDate').value = rec.deliveryDate || '';
+    document.getElementById('remarks').value = rec.remarks || '';
+    toggleSOField();
+  } else {
+    document.getElementById('modalLabel').textContent = 'New entry';
+    document.getElementById('modalTitle').textContent = 'Add MR / PO Record';
+  }
+
+  document.getElementById('recordModal').classList.add('open');
+}
+function closeModal() { document.getElementById('recordModal').classList.remove('open'); }
+document.getElementById('recordModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+/* ─────────────────────────────────────────
+   SAVE RECORD
+───────────────────────────────────────── */
+async function saveRecord() {
+  const mrNum = document.getElementById('mrNumber').value.trim();
+  if (!mrNum) { showToast('MR Number is required', 'error'); return; }
+
+  const payload = {
+    mrCreatedDate: document.getElementById('mrCreatedDate').value || null,
+    plmApprovedDate: document.getElementById('plmApprovedDate').value || null,
+    smApprovedDate: document.getElementById('smApprovedDate').value || null,
+    sharedToProcurementDate: document.getElementById('sharedToProcurementDate').value || null,
+    daysElapsed: Number(document.getElementById('daysElapsed').value || 0),
+    mrNumber: mrNum,
+    materialDetails: document.getElementById('materialDetails').value.trim(),
+    mrType: document.getElementById('mrType').value,
+    soNumber: document.getElementById('mrType').value === 'Sales Order' ? document.getElementById('soNumber').value.trim() : '',
+    fynaMrNo: document.getElementById('fynaMrNo').value.trim(),
+    lpoIssuedDate: document.getElementById('lpoIssuedDate').value || null,
+    lpoNumber: document.getElementById('lpoNumber').value.trim(),
+    vendorDetails: document.getElementById('vendorDetails').value.trim(),
+    lpoCost: Number(document.getElementById('lpoCost').value || 0),
+    deliveryStatus: document.getElementById('deliveryStatus').value,
+    deliveryDate: document.getElementById('deliveryDate').value || null,
+    remarks: document.getElementById('remarks').value.trim(),
+  };
+
+  const editId = document.getElementById('editId').value;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    if (supabaseClient && currentUser) {
+      // Cloud save
+      if (editId) {
+        const { data, error } = await supabaseClient.from(TABLE).update(mapToDB(payload)).eq('id', Number(editId)).select();
+        if (error) throw error;
+        const idx = records.findIndex(r => r.id == editId);
+        if (idx > -1) records[idx] = { ...mapFromDB(data[0]) };
+      } else {
+        const { data, error } = await supabaseClient.from(TABLE).insert([mapToDB(payload)]).select();
+        if (error) throw error;
+        records.unshift(mapFromDB(data[0]));
+      }
+    } else {
+      // Local save
+      if (editId) {
+        const idx = records.findIndex(r => String(r.id) === editId);
+        if (idx > -1) records[idx] = { ...records[idx], ...payload };
+      } else {
+        payload.id = Date.now();
+        records.unshift(payload);
+      }
+      localStorage.setItem('pf_records', JSON.stringify(records));
+    }
+    closeModal();
+    renderAll();
+    showToast(editId ? 'Record updated' : 'Record added', 'success');
+  } catch(e) {
+    showToast(e.message || 'Save failed', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Record';
+  }
+}
+
+/* ─────────────────────────────────────────
+   DELETE RECORD
+───────────────────────────────────────── */
+async function deleteRecord(id) {
+  if (!confirm('Delete this record?')) return;
+  try {
+    if (supabaseClient && currentUser) {
+      const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
+      if (error) throw error;
+    }
+    records = records.filter(r => r.id != id);
+    localStorage.setItem('pf_records', JSON.stringify(records));
+    renderAll();
+    showToast('Record deleted');
+  } catch(e) { showToast(e.message || 'Delete failed', 'error'); }
+}
+
+/* ─────────────────────────────────────────
+   FILTERS & RENDER
+───────────────────────────────────────── */
+function getFilteredRecords() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const st = document.getElementById('statusFilter')?.value || 'All';
+  const sort = document.getElementById('sortSelect')?.value || 'recent';
+
+  let data = records.filter(r => {
+    if (quickTypeFilter !== 'All' && r.mrType !== quickTypeFilter) return false;
+    if (st !== 'All' && r.deliveryStatus !== st) return false;
+    if (q) {
+      const hay = [r.mrNumber, r.materialDetails, r.vendorDetails, r.lpoNumber, r.soNumber, r.fynaMrNo, r.remarks].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (sort === 'recent') data.sort((a, b) => (b.id > a.id ? 1 : -1));
+  else if (sort === 'elapsed') data.sort((a, b) => (b.daysElapsed || 0) - (a.daysElapsed || 0));
+  else if (sort === 'costHigh') data.sort((a, b) => (b.lpoCost || 0) - (a.lpoCost || 0));
+  else if (sort === 'costLow') data.sort((a, b) => (a.lpoCost || 0) - (b.lpoCost || 0));
+  else if (sort === 'mr') data.sort((a, b) => (a.mrNumber || '').localeCompare(b.mrNumber || ''));
+  return data;
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = 'All';
+  document.getElementById('sortSelect').value = 'recent';
+  quickTypeFilter = 'All';
+  document.querySelectorAll('.chip[data-quick]').forEach(c => c.classList.toggle('active', c.dataset.quick === 'All'));
+  renderRecords();
+}
+
+function statusBadge(s) {
+  const map = { 'Delivered':'badge-green', 'Partially Delivered':'badge-amber', 'Pending':'badge-blue', 'Cancelled':'badge-red' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function typeBadge(t) {
+  return `<span class="badge ${t==='Sales Order'?'badge-purple':'badge-blue'}">${t}</span>`;
+}
+function elapsedClass(n) {
+  if (n === '' || n === undefined) return '';
+  if (n <= 14) return 'elapsed-ok';
+  if (n <= 30) return 'elapsed-warn';
+  return 'elapsed-alert';
+}
+
+function escapeHTML(v) {
+  return String(v ?? '').replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+}
+
+function showValue(v) {
+  const clean = v === null || v === undefined || v === '' ? '—' : v;
+  return escapeHTML(clean);
+}
+
+function recordField(label, value, extraClass = '') {
+  const isEmpty = value === null || value === undefined || value === '' || value === '—';
+  return `<div class="record-field ${extraClass}">
+    <div class="record-label">${escapeHTML(label)}</div>
+    <div class="record-value ${isEmpty ? 'muted' : ''}">${showValue(value)}</div>
+  </div>`;
+}
+
+function recordFieldRaw(label, htmlValue, extraClass = '') {
+  return `<div class="record-field ${extraClass}">
+    <div class="record-label">${escapeHTML(label)}</div>
+    <div class="record-value">${htmlValue}</div>
+  </div>`;
+}
+
+function editRecord(id) {
+  const rec = records.find(r => String(r.id) === String(id));
+  if (rec) openModal(rec);
+}
+
+function renderRecords() {
+  const data = getFilteredRecords();
+  const wrap = document.getElementById('recordsCards');
+  if (!wrap) return;
+  if (!data.length) {
+    wrap.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">📋</div><p>No records found</p></div></div>`;
+    return;
+  }
+  wrap.innerHTML = data.map(r => {
+    const el = r.daysElapsed !== undefined && r.daysElapsed !== '' ? r.daysElapsed : '—';
+    const elCls = typeof r.daysElapsed === 'number' ? elapsedClass(r.daysElapsed) : '';
+    const cost = Number(r.lpoCost || 0) ? fmtCost(r.lpoCost) : '—';
+    const material = r.materialDetails || 'No material details added.';
+    return `<article class="record-card">
+      <div class="record-card-header">
+        <div>
+          <div class="record-card-title">
+            <span class="record-mr">${showValue(r.mrNumber)}</span>
+            ${typeBadge(r.mrType)}
+            ${statusBadge(r.deliveryStatus)}
+          </div>
+          <div class="record-card-sub">${showValue(r.vendorDetails || 'No vendor')} · ${showValue(r.lpoNumber ? 'LPO ' + r.lpoNumber : 'No LPO number')}</div>
+        </div>
+        <div class="record-card-actions">
+          <button class="btn sm" onclick="editRecord('${String(r.id).replace(/'/g, "\\'")}')">Edit</button>
+          <button class="btn sm danger" onclick="deleteRecord(${Number(r.id)})">Del</button>
+        </div>
+      </div>
+
+      <div class="record-material">
+        <div class="record-label">Material Details</div>
+        <div class="record-value">${showValue(material)}</div>
+      </div>
+
+      <div class="record-details-grid">
+        ${recordField('MR Created Date', fmtDate(r.mrCreatedDate))}
+        ${recordField('PLM Approved', fmtDate(r.plmApprovedDate))}
+        ${recordField('SM Approved', fmtDate(r.smApprovedDate))}
+        ${recordField('Shared to Procurement', fmtDate(r.sharedToProcurementDate))}
+        ${recordFieldRaw('Days Elapsed', `<span class="${elCls}">${showValue(el)}</span>`)}
+        ${recordField('Delivery Date', fmtDate(r.deliveryDate))}
+        ${recordField('LPO Issued Date', fmtDate(r.lpoIssuedDate))}
+        ${recordField('LPO Cost', cost)}
+        ${recordField('Supplier / Vendor', r.vendorDetails)}
+        ${recordField('LPO Number', r.lpoNumber)}
+        ${recordField('SO Number', r.soNumber)}
+        ${recordField('FYNA MR No.', r.fynaMrNo)}
+        ${recordField('Remarks', r.remarks || '—', 'wide')}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+/* ─────────────────────────────────────────
+   DASHBOARD
+───────────────────────────────────────── */
+function renderDashboard() {
+  const total = records.length;
+  const pending = records.filter(r => r.deliveryStatus === 'Pending').length;
+  const partial = records.filter(r => r.deliveryStatus === 'Partially Delivered').length;
+  const delivered = records.filter(r => r.deliveryStatus === 'Delivered').length;
+  const cancelled = records.filter(r => r.deliveryStatus === 'Cancelled').length;
+  const totalCost = records.reduce((s, r) => s + (Number(r.lpoCost) || 0), 0);
+  const amc = records.filter(r => r.mrType === 'AMC').length;
+  const so = records.filter(r => r.mrType === 'Sales Order').length;
+  const elapsed = records.filter(r => typeof r.daysElapsed === 'number' && r.daysElapsed > 0);
+  const avgElapsed = elapsed.length ? Math.round(elapsed.reduce((s, r) => s + r.daysElapsed, 0) / elapsed.length) : 0;
+  const maxCost = records.length ? Math.max(...records.map(r => Number(r.lpoCost) || 0)) : 0;
+  const completionPct = total ? Math.round((delivered / total) * 100) : 0;
+
+  const statsGrid = document.getElementById('statsGrid');
+  statsGrid.innerHTML = `
+    ${stat('Total Records', total, '#3b82f6', 'var(--accent)')}
+    ${stat('Pending', pending, '#f59e0b', '#f59e0b')}
+    ${stat('Partial Delivery', partial, '#f97316', '#f97316')}
+    ${stat('Delivered', delivered, '#10b981', '#10b981')}
+    ${stat('Total LPO Cost', 'AED ' + totalCost.toLocaleString(undefined,{maximumFractionDigits:0}), '#06b6d4', '#06b6d4')}
+  `;
+
+  document.getElementById('overviewCards').innerHTML = `
+    <div class="mini-card"><div class="mini-card-label">AMC Records</div><div class="mini-card-value">${amc}</div></div>
+    <div class="mini-card"><div class="mini-card-label">Sales Orders</div><div class="mini-card-value">${so}</div></div>
+    <div class="mini-card"><div class="mini-card-label">Avg Days Elapsed</div><div class="mini-card-value">${avgElapsed}</div></div>
+    <div class="mini-card"><div class="mini-card-label">Highest LPO</div><div class="mini-card-value" style="font-size:16px">AED ${maxCost.toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
+  `;
+
+  document.getElementById('completionPct').textContent = completionPct + '%';
+  document.getElementById('completionBar').style.width = completionPct + '%';
+
+  const latest = [...records].sort((a,b) => (b.id > a.id ? 1 : -1)).slice(0, 6);
+  document.getElementById('recentList').innerHTML = latest.length ? latest.map(r => `
+    <div class="recent-item">
+      <div class="recent-main">
+        <div class="recent-title">${r.mrNumber || '—'} · ${r.materialDetails?.substring(0,40) || '—'}</div>
+        <div class="recent-sub">${r.vendorDetails || 'No vendor'} · ${fmtDate(r.mrCreatedDate)}</div>
+      </div>
+      ${statusBadge(r.deliveryStatus)}
+    </div>
+  `).join('') : `<div class="empty-state" style="padding:24px"><p>No records yet</p></div>`;
+}
+
+function stat(label, value, color, textColor) {
+  return `<div class="stat-card" style="--accent-color:${color};--stat-color:${textColor}">
+    <div class="stat-label">${label}</div>
+    <div class="stat-value">${value}</div>
+  </div>`;
+}
+
+function renderAll() {
+  renderDashboard();
+  if (currentView === 'records') renderRecords();
+}
+
+/* ─────────────────────────────────────────
+   EXPORT / IMPORT
+───────────────────────────────────────── */
+function exportJson() {
+  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `ProcureFlow_${todayStr()}.json` });
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('JSON exported', 'success');
+}
+
+function exportExcel() {
+  const rows = records.map(r => ({
+    'MR Created Date': fmtDate(r.mrCreatedDate),
+    'PLM Approved Date': fmtDate(r.plmApprovedDate),
+    'SM Approved Date': fmtDate(r.smApprovedDate),
+    'Shared to Procurement': fmtDate(r.sharedToProcurementDate),
+    'Days Elapsed': r.daysElapsed || 0,
+    'MR Number': r.mrNumber || '',
+    'Material Details': r.materialDetails || '',
+    'MR Type': r.mrType || '',
+    'SO Number': r.soNumber || '',
+    'FYNA MR No.': r.fynaMrNo || '',
+    'LPO Issued Date': fmtDate(r.lpoIssuedDate),
+    'LPO Number': r.lpoNumber || '',
+    'Vendor / Supplier': r.vendorDetails || '',
+    'LPO Cost (AED)': Number(r.lpoCost || 0),
+    'Delivery Status': r.deliveryStatus || '',
+    'Delivery Date': fmtDate(r.deliveryDate),
+    'Remarks': r.remarks || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'MR_PO_Tracker');
+  // Auto column widths
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  const cols = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    let max = 10;
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      if (cell?.v != null) max = Math.max(max, String(cell.v).length);
+    }
+    cols.push({ wch: Math.min(max + 2, 45) });
+  }
+  ws['!cols'] = cols;
+  XLSX.writeFile(wb, `ProcureFlow_${todayStr()}.xlsx`);
+  showToast('Excel downloaded', 'success');
+}
+
+async function handleImport(event) {
+  const file = event.target.files[0]; if (!file) return;
+  if (!confirm('This will replace all current local records with the imported data. Continue?')) { event.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Invalid JSON array');
+      records = imported;
+
+      if (supabaseClient && currentUser) {
+        const rows = records.map(r => mapToDB(r));
+        await supabaseClient.from(TABLE).delete().neq('id', 0);
+        if (rows.length) await supabaseClient.from(TABLE).insert(rows);
+        await loadFromSupabase();
+      } else {
+        localStorage.setItem('pf_records', JSON.stringify(records));
+        renderAll();
+      }
+      showToast(`Imported ${imported.length} records`, 'success');
+    } catch(err) { showToast(err.message || 'Import failed', 'error'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearLocalData() {
+  if (!confirm('This clears all locally stored data. Continue?')) return;
+  records = [];
+  localStorage.removeItem('pf_records');
+  renderAll();
+  showToast('Local data cleared');
+}
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+/* ─────────────────────────────────────────
+   SQL HELPER
+───────────────────────────────────────── */
+function getSupabaseSQL() {
+  return `CREATE TABLE IF NOT EXISTS mr_po_records (
+  id                         BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  mr_created_date            DATE,
+  plm_approved_date          DATE,
+  sm_approved_date           DATE,
+  shared_to_procurement_date DATE,
+  days_elapsed               INTEGER DEFAULT 0,
+  mr_number                  TEXT NOT NULL,
+  material_details           TEXT,
+  mr_type                    TEXT DEFAULT 'AMC',
+  so_number                  TEXT,
+  fyna_mr_no                 TEXT,
+  lpo_issued_date            DATE,
+  lpo_number                 TEXT,
+  vendor_details             TEXT,
+  lpo_cost                   NUMERIC(14,2) DEFAULT 0,
+  delivery_status            TEXT DEFAULT 'Pending',
+  delivery_date              DATE,
+  remarks                    TEXT,
+  created_at                 TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE mr_po_records ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own records" ON mr_po_records
+  FOR ALL USING (auth.uid() IS NOT NULL);`;
+}
+
+function copySupabaseSql() {
+  navigator.clipboard.writeText(getSupabaseSQL()).then(() => showToast('SQL copied!', 'success'));
+}
+
+/* ─────────────────────────────────────────
+   TOAST
+───────────────────────────────────────── */
+let toastTimer;
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  document.getElementById('toastText').textContent = msg;
+  icon.textContent = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  el.style.borderColor = type === 'success' ? 'rgba(16,185,129,0.3)' : type === 'error' ? 'rgba(239,68,68,0.3)' : 'var(--border)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
 </body>
 </html>
